@@ -3,6 +3,7 @@ import { pool } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
 import { isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
+import { validateApplicationSelection } from '../services/applicationRules.js';
 
 const router = Router();
 const levelFields = `
@@ -115,6 +116,79 @@ router.get('/:id', async (req, res, next) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Nivel no encontrado' });
     res.json({ level: result.rows[0] });
   } catch (error) { next(error); }
+});
+
+router.get('/:id/applications', authenticateToken, async (req, res, next) => {
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    const ownership = await pool.query('SELECT creator_id FROM levels WHERE id = $1', [req.params.id]);
+    if (!ownership.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
+    if (String(ownership.rows[0].creator_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'Solo el creador puede ver las postulaciones de este nivel' });
+    }
+    const result = await pool.query(
+      `SELECT a.id, a.status, a.created_at AS applied_at,
+              u.username, u.display_name, u.avatar_url, u.pronouns, u.country, u.gd_username,
+              l.game_mode,
+              CASE WHEN l.game_mode = 'PLATFORMER' THEN u.hardest_platformer_aredl_name
+                   ELSE u.hardest_classic_aredl_name END AS matching_hardest_name,
+              CASE WHEN l.game_mode = 'PLATFORMER' THEN u.hardest_platformer_aredl_id
+                   ELSE u.hardest_classic_aredl_id END AS matching_hardest_id
+       FROM applications a JOIN users u ON u.id = a.verifier_id
+       JOIN levels l ON l.id = a.level_id
+       WHERE a.level_id = $1 ORDER BY a.created_at ASC`,
+      [req.params.id]
+    );
+    res.json({ applications: result.rows });
+  } catch (error) { next(error); }
+});
+
+router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
+  const applicationIds = req.body?.application_ids;
+  const validationError = validateApplicationSelection(applicationIds);
+  if (validationError) return res.status(400).json({ error: validationError });
+
+  let client;
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const levelResult = await client.query('SELECT creator_id, status FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const level = levelResult.rows[0];
+    if (!level) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Nivel no encontrado' });
+    }
+    if (String(level.creator_id) !== String(req.user.id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Solo el creador puede elegir verificadores para este nivel' });
+    }
+    if (!['AVAILABLE', 'IN_PROGRESS'].includes(level.status)) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Este nivel no admite cambios en sus verificadores' });
+    }
+    const selected = await client.query(
+      `SELECT id, status FROM applications
+       WHERE level_id = $1 AND id = ANY($2::bigint[]) FOR UPDATE`,
+      [req.params.id, applicationIds]
+    );
+    if (selected.rows.length !== applicationIds.length || selected.rows.some((application) => application.status !== 'PENDING')) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Todas las postulaciones seleccionadas deben estar pendientes para este nivel' });
+    }
+    const accepted = await client.query(
+      `UPDATE applications SET status = 'ACCEPTED', updated_at = NOW()
+       WHERE level_id = $1 AND id = ANY($2::bigint[])
+       RETURNING id, verifier_id, status, updated_at`,
+      [req.params.id, applicationIds]
+    );
+    await client.query("UPDATE levels SET status = 'IN_PROGRESS', updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ accepted: accepted.rows });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally { client?.release(); }
 });
 
 router.post('/:id/applications', authenticateToken, async (req, res, next) => {

@@ -144,6 +144,66 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
   </main>;
 }
 
+function ApplicantManagement({ level, language }) {
+  const t = copy[language];
+  const [applications, setApplications] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    apiRequest(`/levels/${encodeURIComponent(level.id)}/applications`)
+      .then((data) => { if (active) setApplications(data.applications); })
+      .catch((loadError) => { if (active) setError(translateError(loadError.message, language)); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [level.id, language]);
+
+  const pendingIds = applications.filter((application) => application.status === 'PENDING').map((application) => String(application.id));
+  const canAccept = ['AVAILABLE', 'IN_PROGRESS'].includes(level.status);
+  function toggleApplication(id) {
+    setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+  async function acceptSelected() {
+    setSaving(true); setError(''); setNotice('');
+    try {
+      await apiRequest(`/levels/${encodeURIComponent(level.id)}/applications`, {
+        method: 'PATCH', body: JSON.stringify({ application_ids: selected })
+      });
+      setApplications((current) => current.map((application) => selected.includes(String(application.id)) ? { ...application, status: 'ACCEPTED' } : application));
+      setNotice(t.applicantsAccepted.replace('{count}', String(selected.length)));
+      setSelected([]);
+    } catch (acceptError) { setError(translateError(acceptError.message, language)); }
+    finally { setSaving(false); }
+  }
+
+  return <section className="applicant-management">
+    <div className="applicant-heading"><div><h2>{t.levelApplicants}</h2><p>{t.levelApplicantsIntro}</p></div>
+      {!loading && canAccept && pendingIds.length > 0 && <button type="button" className="button button-outline" onClick={() => setSelected(selected.length === pendingIds.length ? [] : pendingIds)}>{selected.length === pendingIds.length ? t.clearSelection : t.selectAllPending}</button>}
+    </div>
+    {loading ? <p className="levels-message">{t.loadingApplicants}</p> : error ? <p className="level-error" role="alert">{error}</p>
+      : applications.length === 0 ? <p className="levels-message">{t.noApplicants}</p>
+        : <div className="applicant-list">{applications.map((application) => {
+          const username = application.username;
+          const displayName = application.display_name || username;
+          const statusText = application.status === 'ACCEPTED' ? t.activityAccepted : application.status === 'REJECTED' ? t.activityRejected : application.status === 'WITHDRAWN' ? t.activityWithdrawn : t.activityPending;
+          return <article className="applicant-card" key={application.id}>
+            {canAccept && application.status === 'PENDING' && <input aria-label={`${t.selectApplicant} ${displayName}`} type="checkbox" checked={selected.includes(String(application.id))} onChange={() => toggleApplication(String(application.id))}/>}
+            {application.avatar_url ? <img className="applicant-avatar" src={application.avatar_url} alt=""/> : <span className="applicant-avatar applicant-avatar-fallback">{displayName.slice(0, 1).toUpperCase()}</span>}
+            <div className="applicant-info"><Link to={`/user/${encodeURIComponent(username)}`}>{displayName} <span>@{username}</span></Link>
+              <p>{application.matching_hardest_name ? `${t.applicantHardest}: ${application.matching_hardest_name}` : t.noHardestYet}</p>
+            </div>
+            <span className={`applicant-status applicant-status-${application.status.toLowerCase()}`}>{statusText}</span>
+          </article>;
+        })}</div>}
+    {selected.length > 0 && canAccept && <div className="applicant-actions"><span>{t.selectedApplicants.replace('{count}', String(selected.length))}</span><button className="button button-primary" type="button" onClick={acceptSelected} disabled={saving}>{saving ? t.acceptingApplicants : t.acceptSelected}</button></div>}
+    {notice && <p className="level-success" role="status">{notice}</p>}
+  </section>;
+}
+
 export function LevelDetailsPage({ language, user, onRequireLogin, onChangeLanguage }) {
   const { id } = useParams();
   const location = useLocation();
@@ -183,9 +243,9 @@ export function LevelDetailsPage({ language, user, onRequireLogin, onChangeLangu
       {level.description && <p className="level-detail-description">{level.description}</p>}
       <p><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p>
       <a className="button button-outline" href={level.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a>
-      <div className="level-apply-section"><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE'}>{applying ? t.savingApplication : t.apply}</button>
+      {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language}/> : <div className="level-apply-section"><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE'}>{applying ? t.savingApplication : t.apply}</button>
         {applicationNotice && <p className="level-success" role="status">{applicationNotice}</p>}{applicationError && <p className="level-error" role="alert">{applicationError}</p>}
-      </div>
+      </div>}
     </article>}
   </div></main>;
 }

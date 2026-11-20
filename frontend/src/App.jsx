@@ -87,10 +87,20 @@ export default function App() {
       <nav className="site-nav" aria-label={language === 'es' ? 'Navegación principal' : 'Main navigation'}>
         <Link to="/levels">{t.levels}</Link>
         <Link to="/#about">{t.about}</Link>
-        {user && <><Link to="/my-levels">{t.myLevels}</Link><Link to="/my-verifications">{t.myVerifications}</Link><Link className="nav-user" to={`/user/${encodeURIComponent(user.username)}`}>{t.profile}</Link></>}
         {!user && !sessionLoading && <button className="button button-outline" type="button" onClick={() => openAuth('login')}>{t.login}</button>}
         {sessionLoading && <span className="nav-loading">{t.loading}</span>}
-        {user && <button className="button button-outline" type="button" onClick={logout}>{t.logout}</button>}
+        {user && <details className="account-menu">
+          <summary className="account-menu-trigger">
+            {user.avatar_url ? <img className="account-avatar" src={user.avatar_url} alt=""/> : <span className="account-avatar account-avatar-fallback">{(user.display_name || user.username).slice(0, 1).toUpperCase()}</span>}
+            <span className="account-name">{user.display_name || user.username}</span><span className="account-menu-chevron">⌄</span>
+          </summary>
+          <div className="account-menu-panel">
+            <Link to={`/user/${encodeURIComponent(user.username)}`} onClick={(event) => { event.currentTarget.closest('details').open = false; }}>{t.accountProfile}</Link>
+            <Link to="/my-verifications" onClick={(event) => { event.currentTarget.closest('details').open = false; }}>{t.accountVerifications}</Link>
+            <Link to="/my-levels" onClick={(event) => { event.currentTarget.closest('details').open = false; }}>{t.createdLevels}</Link>
+            <button className="account-logout" type="button" onClick={(event) => { event.currentTarget.closest('details').open = false; logout(); }}>{t.logout}</button>
+          </div>
+        </details>}
         <LanguageSelector language={language} onChange={changeLanguage}/>
       </nav>
     </header>

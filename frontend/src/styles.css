@@ -28,6 +28,43 @@ body {
 }
 .site-nav { display: flex; align-items: center; justify-content: flex-end; gap: 18px; color: var(--muted); font-size: 13px; }
 .site-nav > a:hover { color: white; }
+.account-menu { position: relative; z-index: 20; }
+.account-menu-trigger {
+  min-height: 42px; max-width: 230px; padding: 4px 10px 4px 5px; display: flex; align-items: center; gap: 9px;
+  border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.045); color: #f4f2ff; cursor: pointer; list-style: none;
+}
+.account-menu-trigger::-webkit-details-marker { display: none; }
+.account-menu-trigger:hover, .account-menu[open] .account-menu-trigger { background: rgba(255,255,255,.09); border-color: rgba(167,139,250,.45); }
+.account-avatar { width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%; object-fit: cover; background: #29253a; }
+.account-avatar-fallback { display: grid; place-items: center; color: #d7caff; font-weight: 700; }
+.account-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 12px; }
+.account-menu-chevron { color: var(--muted); font-size: 15px; }
+.account-menu-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; width: 210px; padding: 6px;
+  border: 1px solid var(--line); border-radius: 12px; background: #191825; box-shadow: 0 14px 35px rgba(0,0,0,.42);
+}
+.account-menu-panel a, .account-menu-panel button { display: block; width: 100%; padding: 10px 11px; border: 0; border-radius: 7px; background: transparent; color: #f4f2ff; text-align: left; font-size: 13px; }
+.account-menu-panel a:hover { background: rgba(167,139,250,.14); }
+.account-menu-panel .account-logout { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0 0 7px 7px; padding-top: 12px; color: #ff7788; }
+.account-menu-panel .account-logout:hover { background: rgba(255,91,112,.12); }
+.applicant-management { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+.applicant-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 15px; }
+.applicant-heading h2 { margin: 0 0 5px; font: 700 20px 'Space Grotesk'; }
+.applicant-heading p { margin: 0; color: var(--muted); font-size: 13px; }
+.applicant-list { display: grid; gap: 9px; }
+.applicant-card { display: flex; align-items: center; gap: 12px; padding: 11px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.025); }
+.applicant-card > input { width: 17px; height: 17px; accent-color: var(--accent); }
+.applicant-avatar { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%; object-fit: cover; background: #29253a; }
+.applicant-avatar-fallback { display: grid; place-items: center; color: #d7caff; font-weight: 700; }
+.applicant-info { min-width: 0; flex: 1; }
+.applicant-info > a { font-size: 13px; font-weight: 700; }
+.applicant-info > a:hover { color: #c4b5fd; }
+.applicant-info > a span { margin-left: 4px; color: var(--muted); font-size: 11px; font-weight: 400; }
+.applicant-info p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.applicant-status { padding: 5px 8px; border-radius: 999px; background: rgba(255,255,255,.07); color: #c7c2d8; font-size: 11px; font-weight: 700; }
+.applicant-status-accepted { background: rgba(49,155,104,.15); color: #a5f0c5; }
+.applicant-status-rejected, .applicant-status-withdrawn { background: rgba(255,91,112,.12); color: #ff9eac; }
+.applicant-actions { display: flex; align-items: center; justify-content: flex-end; gap: 13px; margin-top: 15px; color: var(--muted); font-size: 13px; }
 .site-footer {
   width: min(100%, 1080px); margin: auto auto 0; padding: 23px 24px;
   display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
@@ -486,6 +523,9 @@ footer span {
   .site-nav { gap: 9px; flex-wrap: wrap; }
   .site-nav > a { font-size: 12px; }
   .site-nav .button { padding: 8px 10px; font-size: 11px; }
+  .account-menu-trigger { min-height: 38px; }
+  .account-avatar { width: 28px; height: 28px; flex-basis: 28px; }
+  .account-name { max-width: 100px; }
   .site-footer { padding: 20px 16px; }
   .navbar {
     padding: 14px 18px;
