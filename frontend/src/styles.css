@@ -20,6 +20,21 @@ body {
   min-width: 320px;
 }
 
+.app-frame { min-height: 100vh; display: flex; flex-direction: column; }
+.site-header {
+  width: min(100%, 1160px); min-height: 78px; margin: 0 auto; padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.site-nav { display: flex; align-items: center; justify-content: flex-end; gap: 18px; color: var(--muted); font-size: 13px; }
+.site-nav > a:hover { color: white; }
+.site-footer {
+  width: min(100%, 1080px); margin: auto auto 0; padding: 23px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  border-top: 1px solid var(--line); color: #f4f2ff; font: 600 13px 'Space Grotesk';
+}
+.site-footer span + span { color: var(--muted); font: 400 12px 'DM Sans'; }
+
 a {
   color: inherit;
   text-decoration: none;
@@ -466,6 +481,12 @@ footer span {
 .auth-switch button:hover { color: #c7b6ff; }
 
 @media (max-width: 700px) {
+  .site-header { min-height: 68px; padding: 12px 16px; align-items: flex-start; }
+  .site-header .brand { font-size: 18px; }
+  .site-nav { gap: 9px; flex-wrap: wrap; }
+  .site-nav > a { font-size: 12px; }
+  .site-nav .button { padding: 8px 10px; font-size: 11px; }
+  .site-footer { padding: 20px 16px; }
   .navbar {
     padding: 14px 18px;
     height: auto;

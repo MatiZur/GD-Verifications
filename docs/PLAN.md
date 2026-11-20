@@ -10,8 +10,9 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 
 ## Próximas tareas (pendientes, no desplegadas)
 
-- [ ] **T-04 — Publicar infraestructura.** Crear recursos en Render, ejecutar migraciones 001–004 y registrar una URL saludable de la API; configurar Cloudflare Pages y `VITE_API_URL`.
+- [ ] **T-04 — Publicar infraestructura.** Crear recursos en Render, ejecutar migraciones 001–006 y registrar una URL saludable de la API; configurar Cloudflare Pages y `VITE_API_URL`.
 - [x] **T-05 — Publicación y catálogo de niveles.** API y pantallas para publicar, descubrir y consultar niveles; validación de YouTube, modalidad y dificultad Top; postulación con requisito mínimo de hardest validado por AREDL. Confirmación: `Feat: Publicación y catálogo de niveles con requisito de hardest`.
+- [x] **T-10 — Navegación común, imágenes y actividad personal.** Header/footer compartidos, imagen 16:9 con miniatura de YouTube de respaldo, y vistas privadas de niveles publicados y postulaciones. Confirmación: `Feat: Actividad personal e imágenes para niveles`.
 - [ ] **T-06 — Resolución de postulaciones y entregas.** Reglas de propiedad, aceptación única, envío de pruebas y transiciones de estado cubiertas por pruebas.
 - [ ] **T-07 — Notificaciones y panel administrativo.** Autorización de rol en backend, moderación y auditoría.
 - [ ] **T-08 — Pruebas de integración y recorrido end-to-end.** Probar PostgreSQL/migraciones y flujos completos en un entorno de staging.

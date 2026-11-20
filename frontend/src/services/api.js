@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+export const apiUrl = (path) => `${API_URL}${path}`;
 
 const TOKEN_KEY = 'gd_verifications_token';
 
@@ -17,7 +18,7 @@ export function clearAuthToken() {
 export async function apiRequest(path, options = {}) {
   const token = getAuthToken();
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers: {
       'Content-Type': 'application/json',

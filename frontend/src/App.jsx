@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { apiRequest, getAuthToken, saveAuthToken, clearAuthToken } from './services/api';
 import UserProfile from './components/UserProfile';
 import LanguageSelector from './components/LanguageSelector';
-import { LevelsPage, LevelDetailsPage } from './components/Levels';
+import { LevelsPage, LevelDetailsPage, MyActivityPage } from './components/Levels';
 import { copy, translateError } from './i18n';
 
 function AuthModal({ language, authMode, form, formError, submitting, onClose, onSubmit, onChange, onSwitch }) {
@@ -81,20 +81,22 @@ export default function App() {
   }
   function logout() { clearAuthToken(); setUser(null); setNotice(t.logoutSuccess); }
 
-  return <Router><><Routes>
+  return <Router><div className="app-frame">
+    <header className="site-header">
+      <Link className="brand" to="/">GD<span>Verifications</span></Link>
+      <nav className="site-nav" aria-label={language === 'es' ? 'Navegación principal' : 'Main navigation'}>
+        <Link to="/levels">{t.levels}</Link>
+        <Link to="/#about">{t.about}</Link>
+        {user && <><Link to="/my-levels">{t.myLevels}</Link><Link to="/my-verifications">{t.myVerifications}</Link><Link className="nav-user" to={`/user/${encodeURIComponent(user.username)}`}>{t.profile}</Link></>}
+        {!user && !sessionLoading && <button className="button button-outline" type="button" onClick={() => openAuth('login')}>{t.login}</button>}
+        {sessionLoading && <span className="nav-loading">{t.loading}</span>}
+        {user && <button className="button button-outline" type="button" onClick={logout}>{t.logout}</button>}
+        <LanguageSelector language={language} onChange={changeLanguage}/>
+      </nav>
+    </header>
+    <Routes>
     <Route path="/" element={
       <main className="page-shell">
-        <nav className="navbar">
-          <a className="brand" href="/">GD<span>Verifications</span></a>
-          <div className="nav-links">
-            <Link to="/levels">{t.levels}</Link><a href="#about">{t.about}</a>
-            {sessionLoading ? <span className="nav-loading">{t.loading}</span> : user ? <>
-              <Link className="nav-user" to={`/user/${encodeURIComponent(user.username)}`}>{t.profile}</Link>
-              <button className="button button-outline" type="button" onClick={logout}>{t.logout}</button>
-            </> : <button className="button button-outline" type="button" onClick={() => openAuth('login')}>{t.login}</button>}
-          </div>
-          <LanguageSelector language={language} onChange={changeLanguage}/>
-        </nav>
         <section className="hero" id="levels">
           <h1>{t.hero1}<br/><span>{t.hero2}</span></h1>
           <p className="hero-copy">{t.homeCopy}</p>
@@ -109,14 +111,16 @@ export default function App() {
           <article className="feature-card"><div className="feature-icon">◎</div><h2>{t.findVerifiers}</h2><p>{t.findText}</p></article>
           <article className="feature-card"><div className="feature-icon">✓</div><h2>{t.tracking}</h2><p>{t.trackingText}</p></article>
         </section>
-        <footer>GD Verifications<span>{t.footer}</span></footer>
       </main>
     } />
     <Route path="/user/:username" element={<UserProfile language={language} onChangeLanguage={changeLanguage}/>}/>
     <Route path="/levels" element={<LevelsPage language={language} user={user} sessionLoading={sessionLoading} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
     <Route path="/levels/new" element={<LevelsPage create language={language} user={user} sessionLoading={sessionLoading} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
     <Route path="/levels/:id" element={<LevelDetailsPage language={language} user={user} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
+    <Route path="/my-levels" element={<MyActivityPage kind="levels" language={language} user={user} onRequireLogin={() => openAuth('login')}/>}/>
+    <Route path="/my-verifications" element={<MyActivityPage kind="applications" language={language} user={user} onRequireLogin={() => openAuth('login')}/>}/>
   </Routes>
+  <footer className="site-footer"><span>GD Verifications</span><span>{t.footer}</span></footer>
   {authOpen && <AuthModal language={language} authMode={authMode} form={form} formError={formError} submitting={submitting} onClose={closeAuth} onSubmit={handleAuthSubmit} onChange={updateField} onSwitch={() => openAuth(authMode === 'login' ? 'register' : 'login')}/>}
-  </></Router>;
+  </div></Router>;
 }

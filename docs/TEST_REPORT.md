@@ -9,6 +9,9 @@ Fecha de ejecución local: 2026-11-20. Entorno: Node.js 24.22.0; PostgreSQL loca
 | `cd backend && npm test` | **PASS** — 10 tests, 0 fallos | Tests unitarios puros de registro, validación de niveles, elegibilidad por puesto AREDL, URL y avatares. |
 | `cd frontend && npm run build` | **PASS** — Vite produjo `dist/` | Compilación de producción Vite. |
 | Migración `005_level_requirements.sql` en PostgreSQL local | **PASS** | Columnas y restricciones de modalidad/Top/requisito mínimo verificadas en la tabla `levels`. |
+| Pruebas unitarias backend tras T-10 | **PASS** | `npm test`: 11 pruebas aprobadas, incluyendo validación de imágenes opcionales. |
+| Compilación frontend tras T-10 | **PASS** | `npm run build` completado. |
+| Migración `006_level_images.sql` en PostgreSQL local | **PASS** | Columnas BYTEA/MIME aplicadas para imágenes opcionales de niveles. |
 
 Comprobaciones ejecutadas después de los últimos cambios de aplicación.
 

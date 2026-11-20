@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { apiRequest, getAuthToken } from '../services/api';
 import { copy, translateError } from '../i18n';
 import { countryCodeFromStored, countryLabel, getCountries } from '../utils/countries';
-import LanguageSelector from './LanguageSelector';
 
 const emptyPassword = { current_password: '', new_password: '' };
 
@@ -131,8 +130,8 @@ export default function UserProfile({ language, onChangeLanguage }) {
   const identity = [user.pronouns, countryLabel(user.country, language)].filter(Boolean).join(' · ');
 
   return <main className="profile-page">
-    <div className="profile-topbar"><Link className="profile-back" to="/">← GD Verifications</Link>
-      <div className="profile-topbar-actions"><LanguageSelector language={language} onChange={onChangeLanguage}/>
+    <div className="profile-topbar"><span />
+      <div className="profile-topbar-actions">
         {isOwner && !editing && <button className="button button-primary" type="button" onClick={startEditing}>{t.edit}</button>}
       </div>
     </div>

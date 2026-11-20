@@ -1,18 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { apiRequest } from '../services/api';
+import { apiRequest, apiUrl } from '../services/api';
 import { copy, translateError } from '../i18n';
-import LanguageSelector from './LanguageSelector';
 
-function LevelsHeader({ language, user, onChangeLanguage }) {
-  const t = copy[language];
-  return <nav className="levels-navbar">
-    <Link className="brand" to="/">GD<span>Verifications</span></Link>
-    <div className="levels-nav-actions">
-      {user && <Link className="nav-user" to={`/user/${encodeURIComponent(user.username)}`}>{t.profile}</Link>}
-      <LanguageSelector language={language} onChange={onChangeLanguage}/>
-    </div>
-  </nav>;
+function youtubeThumbnail(url) {
+  try {
+    const parsed = new URL(url);
+    const id = parsed.hostname.endsWith('youtu.be') ? parsed.pathname.slice(1)
+      : parsed.searchParams.get('v') || parsed.pathname.match(/\/(?:embed|shorts)\/([^/?]+)/)?.[1];
+    return id ? `https://img.youtube.com/vi/${encodeURIComponent(id)}/hqdefault.jpg` : '';
+  } catch { return ''; }
 }
 
 function AredlMinimumPicker({ levels, value, onChange, t }) {
@@ -44,6 +41,9 @@ function LevelCard({ level, language }) {
   const modeLabel = level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode;
   const statusLabel = level.status === 'VERIFIED' ? t.statusVerified : level.status === 'IN_PROGRESS' ? t.statusInProgress : t.statusAvailable;
   return <article className="level-card">
+    <Link className="level-card-image-link" to={`/levels/${level.id}`}>
+      <img className="level-card-image" src={level.has_image ? apiUrl(`/levels/${level.id}/image`) : youtubeThumbnail(level.showcase_url)} alt={level.name} loading="lazy"/>
+    </Link>
     <div className="level-card-top"><span className="level-mode">{modeLabel}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{statusLabel}</span></div>
     <Link className="level-card-title" to={`/levels/${level.id}`}>{level.name}</Link>
     <p className="level-card-difficulty">{t.difficultyTop} {level.difficulty_estimate}</p>
@@ -101,12 +101,11 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
 
   const minimumLevels = form.game_mode === 'PLATFORMER' ? platformer : classic;
   return <main className="levels-page">
-    <LevelsHeader language={language} user={user} onChangeLanguage={onChangeLanguage}/>
     <div className="levels-content">
       <Link className="levels-back" to="/">{t.backHome}</Link>
       {create ? <>
         <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{t.createLevelTitle}</h1><p>{t.createLevelIntro}</p></header>
-        {sessionLoading ? <p className="levels-message">{t.loading}</p> : !user ? <section className="levels-login-card"><p>{t.signInToApply}</p><button className="button button-primary" type="button" onClick={onRequireLogin}>{t.login}</button></section> :
+        {sessionLoading ? <p className="levels-message">{t.loading}</p> : !user ? <section className="levels-login-card"><p>{t.signInToPublish}</p><button className="button button-primary" type="button" onClick={onRequireLogin}>{t.login}</button></section> :
           <form className="level-form" onSubmit={submitLevel}>
             <label className="level-field">{t.levelName}<input name="name" value={form.name} onChange={updateField} maxLength={100} required/></label>
             <div className="level-form-row">
@@ -117,6 +116,18 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
             </div>
             <AredlMinimumPicker levels={minimumLevels} value={form.minimum_hardest_aredl_id} onChange={(value) => setForm((current) => ({ ...current, minimum_hardest_aredl_id: value }))} t={t}/>
             <label className="level-field">{t.youtubeShowcase}<input type="url" name="showcase_url" value={form.showcase_url} onChange={updateField} placeholder="https://youtu.be/..." maxLength={2048} required/></label>
+            <label className="level-field">{t.levelImage}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={async (event) => {
+              const file = event.target.files?.[0]; if (!file) return;
+              if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setFormError(t.levelImageType); event.target.value = ''; return; }
+              if (file.size > 8 * 1024 * 1024) { setFormError(t.levelImageOriginalTooLarge); event.target.value = ''; return; }
+              try { const image = await createImageBitmap(file); const targetRatio = 16 / 9; const cropWidth = Math.min(image.width, image.height * targetRatio); const cropHeight = cropWidth / targetRatio; const canvas = document.createElement('canvas'); canvas.width = 1600; canvas.height = 900; canvas.getContext('2d').drawImage(image, (image.width - cropWidth) / 2, (image.height - cropHeight) / 2, cropWidth, cropHeight, 0, 0, 1600, 900); image.close();
+                const blob = await new Promise((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error(t.levelImageError)), 'image/webp', 0.82));
+                if (blob.size > 1024 * 1024) throw new Error(t.levelImageTooLarge);
+                const reader = new FileReader(); reader.onload = () => setForm((current) => ({ ...current, image_data: reader.result })); reader.readAsDataURL(blob);
+              } catch (imageError) { setFormError(imageError.message || t.levelImageError); } finally { event.target.value = ''; }
+            }}/><small>{t.levelImageHelp}</small>
+              {form.image_data && <div className="level-image-preview"><img src={form.image_data} alt={t.levelImagePreview}/><button type="button" className="button button-outline" onClick={() => setForm((current) => ({ ...current, image_data: '' }))}>{t.levelImageRemove}</button></div>}
+            </label>
             <label className="level-field">{t.levelDescription}<textarea name="description" value={form.description} onChange={updateField} rows={4} maxLength={2000}/></label>
             {formError && <p className="level-error" role="alert">{formError}</p>}
             <div className="level-form-actions"><button className="button button-primary" type="submit" disabled={saving}>{saving ? t.publishing : t.publishLevel}</button></div>
@@ -162,9 +173,10 @@ export function LevelDetailsPage({ language, user, onRequireLogin, onChangeLangu
     finally { setApplying(false); }
   }
 
-  return <main className="levels-page"><LevelsHeader language={language} user={user} onChangeLanguage={onChangeLanguage}/><div className="levels-content">
+  return <main className="levels-page"><div className="levels-content">
     <Link className="levels-back" to="/levels">← {t.levelsTitle}</Link>
     {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : level && <article className="level-detail-card">
+      <img className="level-detail-image" src={level.has_image ? apiUrl(`/levels/${level.id}/image`) : youtubeThumbnail(level.showcase_url)} alt={level.name}/>
       <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span></div>
       <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop} {level.difficulty_estimate}</p>
       <p>{t.createdBy} {level.creator_display_name || level.creator_username}</p>
@@ -175,5 +187,51 @@ export function LevelDetailsPage({ language, user, onRequireLogin, onChangeLangu
         {applicationNotice && <p className="level-success" role="status">{applicationNotice}</p>}{applicationError && <p className="level-error" role="alert">{applicationError}</p>}
       </div>
     </article>}
+  </div></main>;
+}
+
+function ActivityCard({ item, kind, language }) {
+  const t = copy[language];
+  const status = kind === 'levels' ? item.status : item.application_status;
+  const statusText = kind === 'levels'
+    ? ({ AVAILABLE: t.statusAvailable, IN_PROGRESS: t.statusInProgress, VERIFIED: t.statusVerified, PENDING_REVIEW: t.activityReview, REJECTED: t.activityRejected, CANCELLED: t.activityCancelled }[status] || status)
+    : ({ PENDING: t.activityPending, ACCEPTED: t.activityAccepted, REJECTED: t.activityRejected, WITHDRAWN: t.activityWithdrawn }[status] || status);
+  return <article className="level-card activity-card">
+    <div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
+    <Link className="level-card-title" to={`/levels/${item.id}`}>{item.name}</Link>
+    <p className="level-card-difficulty">{t.difficultyTop} {item.difficulty_estimate}</p>
+    {kind === 'levels' ? <p>{t.applicationCount}: {item.application_count}</p> : <><p>{t.createdBy} {item.creator_display_name || item.creator_username}</p><p>{t.appliedAt}: {new Date(item.applied_at).toLocaleDateString(language === 'es' ? 'es-AR' : 'en-US')}</p></>}
+    {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
+    {item.description && <p className="activity-description">{item.description}</p>}
+    <div className="level-card-actions"><a className="button button-outline" href={item.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a><Link className="button button-primary" to={`/levels/${item.id}`}>{t.levelDetails}</Link></div>
+  </article>;
+}
+
+export function MyActivityPage({ kind, language, user, onRequireLogin }) {
+  const t = copy[language];
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(Boolean(user));
+  const [error, setError] = useState('');
+  const endpoint = kind === 'levels' ? '/levels/mine' : '/levels/applications/mine';
+  useEffect(() => {
+    let active = true;
+    if (user) apiRequest(endpoint).then((data) => { if (active) setItems(kind === 'levels' ? data.levels : data.applications); })
+      .catch((loadError) => { if (active) setError(translateError(loadError.message, language)); })
+      .finally(() => { if (active) setLoading(false); });
+    else setLoading(false);
+    return () => { active = false; };
+  }, [user, endpoint, kind, language]);
+  const title = kind === 'levels' ? t.myLevels : t.myVerifications;
+  return <main className="levels-page"><div className="levels-content">
+    <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{title}</h1><p>{kind === 'levels' ? t.myLevelsIntro : t.myVerificationsIntro}</p></header>
+    <nav className="activity-tabs" aria-label={t.myActivity}>
+      <Link className={kind === 'levels' ? 'active' : ''} to="/my-levels">{t.myLevels}</Link>
+      <Link className={kind === 'applications' ? 'active' : ''} to="/my-verifications">{t.myVerifications}</Link>
+    </nav>
+    {!user ? <section className="levels-login-card"><p>{t.signInToViewActivity}</p><button className="button button-primary" type="button" onClick={onRequireLogin}>{t.login}</button></section>
+      : loading ? <p className="levels-message">{t.loadingLevels}</p>
+        : error ? <p className="levels-message level-error">{error}</p>
+          : items.length === 0 ? <p className="levels-message">{kind === 'levels' ? t.emptyMyLevels : t.emptyMyVerifications}</p>
+            : <section className="levels-grid">{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language}/>)}</section>}
   </div></main>;
 }

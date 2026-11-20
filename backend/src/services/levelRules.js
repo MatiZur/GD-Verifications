@@ -15,6 +15,13 @@ export function validateLevelInput(body, aredlLevels = []) {
   if (body.description !== undefined && body.description !== null && (typeof body.description !== 'string' || body.description.length > 2000)) {
     return 'La descripción debe tener hasta 2000 caracteres';
   }
+  if (body.image_data !== undefined && body.image_data !== null && body.image_data !== '') {
+    if (typeof body.image_data !== 'string' || !/^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(body.image_data)) {
+      return 'La imagen debe ser JPG o WebP válida';
+    }
+    const encoded = body.image_data.slice(body.image_data.indexOf(',') + 1);
+    if (Buffer.from(encoded, 'base64').length > 1024 * 1024) return 'La imagen optimizada no puede superar 1 MB';
+  }
 
   const rawRequiredHardestId = body.minimum_hardest_aredl_id;
   const requiredHardestId = rawRequiredHardestId === undefined || rawRequiredHardestId === null || rawRequiredHardestId === ''
