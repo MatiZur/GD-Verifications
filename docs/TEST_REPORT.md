@@ -57,6 +57,14 @@ Comprobaciones de T-16:
 | `cd frontend && npm run build` | **PASS** | Vite compiló el botón de chat y sus estilos adaptables. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
 
+Comprobaciones de T-17:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** | Suite unitaria del backend sin regresiones. |
+| `cd frontend && npm run build` | **PASS** | Vite compiló la condición de visibilidad del acceso al chat. |
+| `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
+
 ## Cobertura actual y límites
 
 - Las pruebas automatizadas actuales no requieren credenciales, PostgreSQL ni acceso a AREDL.

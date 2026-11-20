@@ -19,6 +19,7 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 - [x] **T-14 — Corrección de imágenes y modal de nivel.** Exposición cross-origin segura de las imágenes, modal sin scroll interno, limpieza de navegación, `Top ~N` y chat ampliado. Confirmación: `Fix: Imagen de niveles y ajustes de interfaz`.
 - [x] **T-15 — Scroll del modal y formato Top aproximado.** Desplazamiento interno del modal cuando hace falta y `~` pegado al puesto numérico. Confirmación: `Fix: Desplazamiento del modal y formato Top`.
 - [x] **T-16 — Ajuste del botón de chat en detalles de nivel.** Separación y formato adaptable del acceso al chat para que no se superponga con postulantes ni quede pegado al borde del modal. Confirmación: `Fix: Espaciado del acceso al chat en niveles`.
+- [x] **T-17 — Visibilidad del acceso al chat.** Mostrar “Abrir chat” únicamente cuando el nivel tenga verificadores aceptados, conservando el control de acceso del backend. Confirmación: `Fix: Ocultar chat sin verificadores aceptados`.
 - [ ] **T-06 — Resolución de postulaciones y entregas.** La aceptación múltiple quedó implementada en T-11; continúan pendientes el rechazo individual, el envío de pruebas y sus transiciones de estado.
 - [ ] **T-07 — Notificaciones y panel administrativo.** Autorización de rol en backend, moderación y auditoría.
 - [ ] **T-08 — Pruebas de integración y recorrido end-to-end.** Probar PostgreSQL/migraciones y flujos completos en un entorno de staging.

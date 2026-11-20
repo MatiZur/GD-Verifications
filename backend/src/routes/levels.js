@@ -14,6 +14,7 @@ const levelFields = `
   l.difficulty_estimate, l.game_mode, l.showcase_url, l.status,
   l.minimum_hardest_aredl_id, l.minimum_hardest_aredl_name,
   (l.image_data IS NOT NULL) AS has_image,
+  (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count,
   l.created_at, u.username AS creator_username, u.display_name AS creator_display_name
 `;
 
