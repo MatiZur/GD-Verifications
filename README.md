@@ -1,8 +1,8 @@
 # GD Verifications
 
-Plataforma comunitaria propia para Geometry Dash: perfiles de jugadores y, como objetivo del proyecto, publicación de niveles y su proceso de verificación. No es ReservaClub.
+Plataforma comunitaria propia para Geometry Dash: perfiles de jugadores y, como objetivo del proyecto, publicación de niveles y su proceso de verificación.
 
-> **Estado honesto de la entrega:** hay una interfaz React bilingüe de inicio, perfiles y catálogo/publicación de niveles; la API Express permite crear/listar/consultar niveles y enviar postulaciones con el requisito de hardest mínimo validado. Aún faltan edición y baja de niveles, resolución/aceptación de postulaciones, entrega de verificaciones, notificaciones y administración. La configuración de despliegue está preparada, pero los servicios públicos aún deben crearse y probarse; clonar el repositorio no significa que ya esté online.
+> **Estado del proyecto:** hay una interfaz React bilingüe de inicio, perfiles y catálogo/publicación de niveles; la API Express permite crear/listar/consultar niveles y enviar postulaciones con el requisito de hardest mínimo validado. Aún faltan edición y baja de niveles, resolución/aceptación de postulaciones, entrega de verificaciones, notificaciones y administración. La configuración de despliegue está preparada, pero los servicios públicos aún deben crearse y probarse; clonar el repositorio no significa que ya esté online.
 
 ## Documentación del proyecto
 
