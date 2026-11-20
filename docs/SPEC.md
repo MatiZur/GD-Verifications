@@ -21,10 +21,10 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 
 ## Niveles, verificaciones y moderación
 
-15. **Planificada** — Publicar un nivel requiere autenticación y guarda creador, nombre, ID de Geometry Dash, dificultad, video de muestra y estado inicial `PENDING_REVIEW`.
+15. **Implementada** — Publicar un nivel requiere autenticación y guarda nombre, modalidad (`CLASSIC` o `PLATFORMER`), dificultad estimada `Top N` (N entre 1 y 10000), video de YouTube, descripción opcional y creador. Si se define un hardest mínimo, debe pertenecer a la lista AREDL de la modalidad elegida. Los niveles nuevos quedan `AVAILABLE` y visibles en el catálogo; la moderación previa todavía no está implementada.
 16. **Planificada** — Solo el creador puede editar su nivel; los cambios no pueden saltarse moderación ni alterar la propiedad.
 17. **Planificada** — Un nivel pasa por estados definidos: `PENDING_REVIEW`, `AVAILABLE`, `IN_PROGRESS`, `VERIFIED`, `REJECTED` o `CANCELLED`; las transiciones inválidas se rechazan en el backend.
-18. **Planificada** — Un usuario autenticado puede postularse una sola vez por nivel; el autor del nivel no puede postularse a verificarlo.
+18. **Implementada** — Un usuario autenticado puede postularse una sola vez por nivel disponible; el autor no puede postularse para verificar su propio nivel. Si hay hardest mínimo, el backend compara el puesto AREDL del perfil en la misma modalidad: una posición numéricamente igual o menor (más difícil) cumple el requisito. Sin mínimo, cualquier usuario salvo el autor puede postularse.
 19. **Planificada** — Solo el creador del nivel o un administrador puede resolver postulaciones; como máximo una puede estar `ACCEPTED` por nivel (índice único parcial en PostgreSQL).
 20. **Planificada** — Solo el verificador con postulación aceptada puede entregar una prueba; la entrega debe incluir un enlace de video permitido y comenzar `PENDING`.
 21. **Planificada** — Solo el creador o un administrador puede resolver una entrega; aprobarla marca el nivel como `VERIFIED`, y rechazarla mantiene registro del motivo.

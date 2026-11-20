@@ -3,12 +3,9 @@ import bcrypt from 'bcrypt';
 import { pool } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { isAvatarValue, isHttpUrl, isYouTubeUrl } from '../validators/profile.js';
+import { getAredlLevels } from '../services/aredl.js';
 
 const router = Router();
-const AREDL_LEVELS_URLS = {
-  classic: 'https://api.aredl.net/v2/api/aredl/levels',
-  platformer: 'https://api.aredl.net/v2/api/arepl/levels'
-};
 const PROFILE_FIELDS = {
   display_name: { column: 'display_name', max: 50 },
   pronouns: { column: 'pronouns', max: 40 },
@@ -19,33 +16,6 @@ const PROFILE_FIELDS = {
   youtube_url: { column: 'youtube_url', max: 2048, url: true, youtube: true },
   discord_username: { column: 'discord_username', max: 32 }
 };
-
-const aredlCache = {
-  classic: { expiresAt: 0, levels: [] },
-  platformer: { expiresAt: 0, levels: [] }
-};
-
-async function getAredlLevels(type) {
-  const cache = aredlCache[type];
-  if (cache.expiresAt > Date.now()) return cache.levels;
-
-  const response = await fetch(AREDL_LEVELS_URLS[type], {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(10000)
-  });
-
-  if (!response.ok) throw new Error(`AREDL responded with ${response.status}`);
-
-  const payload = await response.json();
-  if (!Array.isArray(payload)) throw new Error('Unexpected AREDL response');
-
-  const levels = payload
-    .filter((level) => level.id && level.name && ['MainList', 'Legacy'].includes(level.status))
-    .map(({ id, name, position, status }) => ({ id, name, position, status }));
-
-  aredlCache[type] = { expiresAt: Date.now() + 15 * 60 * 1000, levels };
-  return levels;
-}
 
 const publicProfileFields = `
   id, username, display_name, pronouns, country, gd_username,

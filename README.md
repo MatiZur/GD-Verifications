@@ -2,7 +2,7 @@
 
 Plataforma comunitaria propia para Geometry Dash: perfiles de jugadores y, como objetivo del proyecto, publicación de niveles y su proceso de verificación. No es ReservaClub.
 
-> **Estado honesto de la entrega:** hay una interfaz React bilingüe de inicio y perfiles, API Express para autenticación y perfiles, esquema/migraciones PostgreSQL y pruebas unitarias iniciales. El catálogo, CRUD de niveles, postulaciones, entregas, notificaciones y administración todavía no están implementados. La configuración de despliegue está preparada, pero los servicios públicos aún deben crearse y probarse; clonar el repositorio no significa que ya esté online.
+> **Estado honesto de la entrega:** hay una interfaz React bilingüe de inicio, perfiles y catálogo/publicación de niveles; la API Express permite crear/listar/consultar niveles y enviar postulaciones con el requisito de hardest mínimo validado. Aún faltan edición y baja de niveles, resolución/aceptación de postulaciones, entrega de verificaciones, notificaciones y administración. La configuración de despliegue está preparada, pero los servicios públicos aún deben crearse y probarse; clonar el repositorio no significa que ya esté online.
 
 ## Documentación del proyecto
 
@@ -31,6 +31,7 @@ Plataforma comunitaria propia para Geometry Dash: perfiles de jugadores y, como 
    psql -d gd_verifications -f backend/migrations/002_user_profiles.sql
    psql -d gd_verifications -f backend/migrations/003_profile_hardest_types.sql
    psql -d gd_verifications -f backend/migrations/004_user_pronouns_country.sql
+   psql -d gd_verifications -f backend/migrations/005_level_requirements.sql
    ```
 
 2. Copiar `backend/.env.example` a `backend/.env`, completar `DATABASE_URL` y reemplazar `JWT_SECRET` con un secreto aleatorio privado. Luego:
@@ -51,6 +52,16 @@ Plataforma comunitaria propia para Geometry Dash: perfiles de jugadores y, como 
 
 Frontend: <http://localhost:5173>  
 API health check: <http://localhost:3000/api/v1/health>
+
+## Niveles disponibles en esta versión
+
+- `GET /api/v1/levels`: catálogo público de niveles disponibles, en progreso o verificados.
+- `GET /api/v1/levels/:id`: detalle público de un nivel.
+- `POST /api/v1/levels` (Bearer token): publica nombre, modalidad, Top estimado, enlace HTTPS de YouTube y descripción opcional.
+- `POST /api/v1/levels/:id/applications` (Bearer token): solicita verificarlo. Si el nivel define hardest mínimo, solo acepta perfiles cuyo hardest AREDL de la modalidad tenga una posición igual o menor (más difícil) que el mínimo.
+- `GET /api/v1/users/aredl/extremes`: listas AREDL que alimentan el selector de mínimos.
+
+Por ahora, los niveles se publican directamente como `AVAILABLE`; no hay moderación ni resolución de solicitudes en la interfaz.
 
 ## Pruebas
 
@@ -76,7 +87,7 @@ El archivo [render.yaml](./render.yaml) declara un Blueprint con una API Node y 
 
 El Blueprint asigna el plan gratuito al servicio web y el plan PostgreSQL persistente mínimo (`0.1c-256mb`). Según la [página de precios de Render](https://render.com/pricing), ese plan de PostgreSQL figura actualmente a USD 6/mes; el precio puede cambiar. La base gratuita de Render expira a los 30 días, por lo que no se usa para una entrega que deba conservar datos a largo plazo ([límites del plan gratuito](https://render.com/docs/free)).
 
-Después de crear la base, ejecutar las cuatro migraciones SQL de arriba **una sola vez y en orden** contra la base de Render, usando la conexión de PostgreSQL que muestra el Dashboard. La API responderá `503` en `/api/v1/health` si no puede conectarse a PostgreSQL; las rutas que dependen de tablas requieren que las migraciones estén aplicadas. Copiar la URL pública del servicio (por ejemplo, `https://gd-verifications-api.onrender.com`) para el siguiente paso.
+Después de crear la base, ejecutar las cinco migraciones SQL de arriba **una sola vez y en orden** contra la base de Render, usando la conexión de PostgreSQL que muestra el Dashboard. La API responderá `503` en `/api/v1/health` si no puede conectarse a PostgreSQL; las rutas que dependen de tablas requieren que las migraciones estén aplicadas. Copiar la URL pública del servicio (por ejemplo, `https://gd-verifications-api.onrender.com`) para el siguiente paso.
 
 ### 2. Frontend en Cloudflare Pages
 

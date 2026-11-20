@@ -1,0 +1,149 @@
+.levels-page {
+  min-height: 100vh;
+  padding: 0 24px 72px;
+  background: radial-gradient(ellipse at 50% 0, rgba(117,75,190,.16), transparent 44%), #101018;
+  color: #f4f2ff;
+}
+
+.levels-navbar {
+  width: min(100%, 1160px);
+  min-height: 76px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid rgba(255,255,255,.09);
+}
+
+.levels-nav-actions { display: flex; align-items: center; gap: 18px; }
+.levels-content { width: min(100%, 1000px); margin: 0 auto; padding-top: 30px; }
+.levels-back { display: inline-block; margin-bottom: 25px; color: #c7c2d8; font-size: 14px; font-weight: 600; }
+.levels-back:hover { color: #fff; }
+
+.levels-heading { margin: 12px 0 30px; }
+.levels-heading h1,
+.level-detail-card h1 {
+  margin: 7px 0 12px;
+  font: 700 clamp(34px, 6vw, 52px)/1.1 'Space Grotesk', sans-serif;
+  letter-spacing: -2px;
+}
+
+.levels-heading > p:not(.profile-eyebrow) { margin: 0 0 22px; color: #a5a2b8; line-height: 1.6; }
+.levels-message { padding: 30px 0; color: #a5a2b8; }
+.levels-login-card,
+.level-form,
+.level-detail-card {
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px;
+  padding: 28px;
+  background: rgba(25,24,37,.9);
+}
+
+.levels-login-card { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.levels-login-card p { color: #c7c2d8; }
+.level-form { display: flex; flex-direction: column; gap: 20px; }
+.level-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.level-field { display: flex; min-width: 0; flex-direction: column; gap: 8px; color: #e8e5f2; font-size: 13px; font-weight: 600; }
+.level-field input,
+.level-field textarea,
+.level-field select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 9px;
+  outline: none;
+  padding: 11px 12px;
+  background: #11111a;
+  color: #f4f2ff;
+  font: 400 14px 'DM Sans', sans-serif;
+}
+.level-field textarea { resize: vertical; line-height: 1.55; }
+.level-field input:focus,
+.level-field textarea:focus,
+.level-field select:focus { border-color: #a78bfa; }
+.level-field input::placeholder,
+.level-field textarea::placeholder { color: #777387; }
+.level-field small { color: #928da5; font-size: 11px; font-weight: 400; }
+
+.level-top-input { display: flex; align-items: center; gap: 10px; }
+.level-top-input > span { color: #c4b5fd; font: 700 15px 'Space Grotesk', sans-serif; }
+.level-top-input input { flex: 1; }
+.level-picker { position: relative; }
+.level-picker-options {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid rgba(167,139,250,.4);
+  border-radius: 9px;
+  padding: 5px;
+  background: #191825;
+  box-shadow: 0 12px 30px rgba(0,0,0,.45);
+}
+.level-picker-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 11px;
+  background: transparent;
+  color: #f4f2ff;
+  text-align: left;
+  font-size: 13px;
+}
+.level-picker-option:hover,
+.level-picker-option[aria-selected="true"] { background: rgba(167,139,250,.15); }
+.level-picker-option small { color: #a5a2b8; font-size: 11px; }
+.level-picker-empty { margin: 0; padding: 11px; color: #a5a2b8; font-size: 12px; }
+.level-form-actions { display: flex; justify-content: flex-end; }
+.level-error { color: #ff8b9d; }
+.level-success { color: #a5f0c5; }
+
+.levels-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.level-card {
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 20px;
+  background: rgba(255,255,255,.035);
+}
+.level-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.level-mode,
+.level-status { border-radius: 999px; padding: 5px 9px; background: rgba(167,139,250,.13); color: #d7caff; font-size: 11px; font-weight: 700; }
+.level-status { background: rgba(255,255,255,.07); color: #c7c2d8; }
+.status-verified { background: rgba(49,155,104,.15); color: #a5f0c5; }
+.level-card-title { display: block; margin: 16px 0 7px; overflow-wrap: anywhere; font: 700 21px 'Space Grotesk',sans-serif; }
+.level-card-title:hover { color: #c4b5fd; }
+.level-card-difficulty { margin: 0; color: #c4b5fd; font-weight: 700; }
+.level-card-creator,
+.level-card-requirement { color: #a5a2b8; font-size: 13px; line-height: 1.5; }
+.level-card-requirement strong { color: #d7caff; }
+.level-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.level-card-actions .button { font-size: 12px; padding: 9px 11px; }
+
+.level-detail-card { max-width: 760px; margin: 0 auto; }
+.level-detail-card > p { color: #c7c2d8; line-height: 1.65; }
+.level-detail-difficulty { color: #c4b5fd !important; font-size: 18px; font-weight: 700; }
+.level-detail-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.level-apply-section { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; margin-top: 24px; }
+.level-apply-section p { margin: 0; font-size: 13px; }
+
+@media (max-width: 650px) {
+  .levels-page { padding: 0 16px 48px; }
+  .levels-navbar { min-height: 68px; gap: 10px; }
+  .levels-navbar .brand { font-size: 18px; }
+  .levels-nav-actions { gap: 10px; }
+  .levels-grid,
+  .level-form-row { grid-template-columns: 1fr; }
+  .level-form,
+  .level-detail-card,
+  .levels-login-card { padding: 20px; }
+  .levels-login-card { align-items: flex-start; flex-direction: column; gap: 5px; }
+}

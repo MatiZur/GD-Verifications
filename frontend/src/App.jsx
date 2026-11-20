@@ -3,7 +3,31 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { apiRequest, getAuthToken, saveAuthToken, clearAuthToken } from './services/api';
 import UserProfile from './components/UserProfile';
 import LanguageSelector from './components/LanguageSelector';
+import { LevelsPage, LevelDetailsPage } from './components/Levels';
 import { copy, translateError } from './i18n';
+
+function AuthModal({ language, authMode, form, formError, submitting, onClose, onSubmit, onChange, onSwitch }) {
+  const t = copy[language];
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <button className="modal-close" type="button" onClick={onClose} aria-label={t.closeNotice}>×</button>
+      <div className="auth-heading"><div className="auth-logo">GD</div>
+        <h2 id="auth-title">{authMode === 'login' ? t.welcome : t.createAccount}</h2>
+        <p>{authMode === 'login' ? t.loginCopy : t.registerCopy}</p>
+      </div>
+      <form className="auth-form" onSubmit={onSubmit}>
+        {authMode === 'register' && <label>{t.username}<input type="text" name="username" placeholder={t.usernamePlaceholder} value={form.username} onChange={onChange} minLength={3} maxLength={30} pattern="[a-zA-Z0-9_]+" title={t.usernameTitle} autoComplete="username" required/></label>}
+        <label>{t.email}<input type="email" name="email" placeholder="you@email.com" value={form.email} onChange={onChange} autoComplete="email" required/></label>
+        <label>{t.password}<input type="password" name="password" placeholder={t.passwordPlaceholder} value={form.password} onChange={onChange} minLength={8} maxLength={72} autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required/></label>
+        {formError && <div className="form-error" role="alert">{formError}</div>}
+        <button className="button button-primary auth-submit" type="submit" disabled={submitting}>{submitting ? t.processing : authMode === 'login' ? t.login : t.createAccount}</button>
+      </form>
+      <div className="auth-switch">{authMode === 'login' ? t.accountPrompt : t.alreadyAccount}
+        <button type="button" onClick={onSwitch}>{authMode === 'login' ? t.register : t.loginAction}</button>
+      </div>
+    </section>
+  </div>;
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -56,18 +80,14 @@ export default function App() {
     finally { setSubmitting(false); }
   }
   function logout() { clearAuthToken(); setUser(null); setNotice(t.logoutSuccess); }
-  function handlePublish() {
-    if (!user) { openAuth('login'); return; }
-    setNotice(t.publishSoon);
-  }
 
-  return <Router><Routes>
+  return <Router><><Routes>
     <Route path="/" element={
       <main className="page-shell">
         <nav className="navbar">
           <a className="brand" href="/">GD<span>Verifications</span></a>
           <div className="nav-links">
-            <a href="#levels">{t.levels}</a><a href="#about">{t.about}</a>
+            <Link to="/levels">{t.levels}</Link><a href="#about">{t.about}</a>
             {sessionLoading ? <span className="nav-loading">{t.loading}</span> : user ? <>
               <Link className="nav-user" to={`/user/${encodeURIComponent(user.username)}`}>{t.profile}</Link>
               <button className="button button-outline" type="button" onClick={logout}>{t.logout}</button>
@@ -79,8 +99,8 @@ export default function App() {
           <h1>{t.hero1}<br/><span>{t.hero2}</span></h1>
           <p className="hero-copy">{t.homeCopy}</p>
           <div className="hero-actions">
-            <button className="button button-primary button-large" type="button" onClick={() => setNotice(t.catalogSoon)}>{t.browse}</button>
-            <button className="button button-outline button-large" type="button" onClick={handlePublish}>{t.publish}</button>
+            <Link className="button button-primary button-large" to="/levels">{t.browse}</Link>
+            <Link className="button button-outline button-large" to="/levels/new">{t.publish}</Link>
           </div>
           {notice && <div className="notice"><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label={t.closeNotice}>×</button></div>}
         </section>
@@ -90,27 +110,13 @@ export default function App() {
           <article className="feature-card"><div className="feature-icon">✓</div><h2>{t.tracking}</h2><p>{t.trackingText}</p></article>
         </section>
         <footer>GD Verifications<span>{t.footer}</span></footer>
-        {authOpen && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeAuth(); }}>
-          <section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-            <button className="modal-close" type="button" onClick={closeAuth} aria-label={t.closeNotice}>×</button>
-            <div className="auth-heading"><div className="auth-logo">GD</div>
-              <h2 id="auth-title">{authMode === 'login' ? t.welcome : t.createAccount}</h2>
-              <p>{authMode === 'login' ? t.loginCopy : t.registerCopy}</p>
-            </div>
-            <form className="auth-form" onSubmit={handleAuthSubmit}>
-              {authMode === 'register' && <label>{t.username}<input type="text" name="username" placeholder={t.usernamePlaceholder} value={form.username} onChange={updateField} minLength={3} maxLength={30} pattern="[a-zA-Z0-9_]+" title={t.usernameTitle} autoComplete="username" required/></label>}
-              <label>{t.email}<input type="email" name="email" placeholder="you@email.com" value={form.email} onChange={updateField} autoComplete="email" required/></label>
-              <label>{t.password}<input type="password" name="password" placeholder={t.passwordPlaceholder} value={form.password} onChange={updateField} minLength={8} maxLength={72} autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required/></label>
-              {formError && <div className="form-error" role="alert">{formError}</div>}
-              <button className="button button-primary auth-submit" type="submit" disabled={submitting}>{submitting ? t.processing : authMode === 'login' ? t.login : t.createAccount}</button>
-            </form>
-            <div className="auth-switch">{authMode === 'login' ? t.accountPrompt : t.alreadyAccount}
-              <button type="button" onClick={() => openAuth(authMode === 'login' ? 'register' : 'login')}>{authMode === 'login' ? t.register : t.loginAction}</button>
-            </div>
-          </section>
-        </div>}
       </main>
     } />
     <Route path="/user/:username" element={<UserProfile language={language} onChangeLanguage={changeLanguage}/>}/>
-  </Routes></Router>;
+    <Route path="/levels" element={<LevelsPage language={language} user={user} sessionLoading={sessionLoading} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
+    <Route path="/levels/new" element={<LevelsPage create language={language} user={user} sessionLoading={sessionLoading} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
+    <Route path="/levels/:id" element={<LevelDetailsPage language={language} user={user} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
+  </Routes>
+  {authOpen && <AuthModal language={language} authMode={authMode} form={form} formError={formError} submitting={submitting} onClose={closeAuth} onSubmit={handleAuthSubmit} onChange={updateField} onSwitch={() => openAuth(authMode === 'login' ? 'register' : 'login')}/>}
+  </></Router>;
 }

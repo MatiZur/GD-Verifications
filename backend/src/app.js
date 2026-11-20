@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { pool } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
+import levelRoutes from './routes/levels.js';
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.get('/api/v1/health', async (_req, res) => {
 // AUTENTICACIÓN
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/levels', levelRoutes);
 
 // RUTAS INEXISTENTES
 app.use((req, res) => {
