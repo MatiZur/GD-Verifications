@@ -51,3 +51,4 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 39. **Implementada** — Si el contenido del modal supera la altura disponible, el panel ofrece su propio desplazamiento vertical y mantiene el aspecto, tamaño y ancho actuales; el fondo permanece fijo.
 40. **Implementada** — Las imágenes de nivel se sirven con `Cross-Origin-Resource-Policy: cross-origin` para que la web de Vite/Cloudflare pueda cargarlas desde la API de otro origen.
 41. **Implementada** — La dificultad relativa se muestra con tilde aproximada pegada al número (`Top ~N`) en el catálogo, detalles, actividad y formulario.
+42. **Implementada** — En los detalles de un nivel, el acceso al chat se separa visualmente del bloque de postulantes, mantiene espacio respecto del borde inferior del modal y se adapta a pantallas pequeñas.

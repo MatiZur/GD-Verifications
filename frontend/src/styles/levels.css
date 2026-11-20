@@ -193,6 +193,10 @@
 .level-detail-description { white-space: pre-wrap; overflow-wrap: anywhere; }
 .level-apply-section { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; margin-top: 24px; }
 .level-apply-section p { margin: 0; font-size: 13px; }
+.level-chat-action { display: flex; justify-content: flex-start; margin: 24px 0 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); }
+.level-chat-open-button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 18px; border-color: rgba(167,139,250,.45); border-radius: 10px; background: rgba(167,139,250,.09); color: #e3d9ff; font-weight: 700; text-decoration: none; transition: background .18s ease, border-color .18s ease, transform .18s ease; }
+.level-chat-open-button:hover { transform: translateY(-1px); border-color: #a78bfa; background: rgba(167,139,250,.17); }
+.level-chat-open-button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
 
 @media (max-width: 650px) {
   .levels-page { padding: 0 16px 48px; }
@@ -214,6 +218,8 @@
   .level-modal { width: calc(100% - 20px); max-height: calc(100vh - 20px); }
   .level-details-content { padding: 14px 0; }
   .level-detail-card { padding: 0; }
+  .level-chat-action { margin: 20px 0 12px; padding-top: 15px; }
+  .level-chat-open-button { width: 100%; }
   .applicant-heading { flex-direction: column; }
   .applicant-card { flex-wrap: wrap; }
   .applicant-status { margin-left: auto; }

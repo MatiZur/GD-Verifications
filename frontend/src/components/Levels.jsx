@@ -362,7 +362,7 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
       {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language}/> : <div className="level-apply-section"><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE'}>{applying ? t.savingApplication : t.apply}</button>
         {applicationNotice && <p className="level-success" role="status">{applicationNotice}</p>}{applicationError && <p className="level-error" role="alert">{applicationError}</p>}
       </div>}
-      {user && <Link className="button button-outline" to={`/levels/${encodeURIComponent(id)}/chat`}>{t.openLevelChat}</Link>}
+      {user && <div className="level-chat-action"><Link className="button button-outline level-chat-open-button" to={`/levels/${encodeURIComponent(id)}/chat`}>{t.openLevelChat}</Link></div>}
     </article>}
   </div>;
 }

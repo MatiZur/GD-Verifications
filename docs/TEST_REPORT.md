@@ -50,6 +50,13 @@ Comprobaciones de T-15:
 
 Comprobaciones ejecutadas después de los últimos cambios de aplicación.
 
+Comprobaciones de T-16:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd frontend && npm run build` | **PASS** | Vite compiló el botón de chat y sus estilos adaptables. |
+| `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
+
 ## Cobertura actual y límites
 
 - Las pruebas automatizadas actuales no requieren credenciales, PostgreSQL ni acceso a AREDL.
