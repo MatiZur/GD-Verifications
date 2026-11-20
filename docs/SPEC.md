@@ -48,6 +48,6 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 36. **Implementada** — Las imágenes opcionales se recortan al centro a 16:9, se codifican como JPG de 1920×1080 y alta calidad, y se limitan a 4 MB antes de almacenarse en PostgreSQL. La API admite un cuerpo JSON de hasta 8 MB.
 37. **Implementada** — El chat tiene una página propia y lista al creador y a todos los verificadores aceptados. Los participantes pueden enviar texto, imágenes JPG/PNG/WebP de hasta 8 MB y videos MP4/WebM de hasta 25 MB. El backend valida el permiso, tipo y firma de archivo y sirve los adjuntos solo a participantes; se guardan en PostgreSQL con la migración `009_chat_attachments.sql`.
 38. **Implementada** — La etiqueta española para el modo `CLASSIC` es `Clásico`.
-39. **Implementada** — El modal de detalles no crea un contenedor desplazable propio; el video de YouTube y el resto del contenido se presentan sin un segundo deslizador.
+39. **Implementada** — Si el contenido del modal supera la altura disponible, el panel ofrece su propio desplazamiento vertical y mantiene el aspecto, tamaño y ancho actuales; el fondo permanece fijo.
 40. **Implementada** — Las imágenes de nivel se sirven con `Cross-Origin-Resource-Policy: cross-origin` para que la web de Vite/Cloudflare pueda cargarlas desde la API de otro origen.
-41. **Implementada** — La dificultad relativa se muestra con tilde aproximada (`Top ~N`) en el catálogo, detalles, actividad y formulario.
+41. **Implementada** — La dificultad relativa se muestra con tilde aproximada pegada al número (`Top ~N`) en el catálogo, detalles, actividad y formulario.

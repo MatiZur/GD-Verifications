@@ -55,7 +55,7 @@ function LevelCard({ level, language, onOpen }) {
     </a>
     <div className="level-card-top"><span className="level-mode">{modeLabel}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{statusLabel}</span></div>
     <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{level.name}</button>
-    <p className="level-card-difficulty">{t.difficultyTop} {level.difficulty_estimate}</p>
+    <p className="level-card-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
     <p className="level-card-creator">{t.createdBy} {level.creator_display_name || level.creator_username}</p>
     {level.minimum_hardest_aredl_name && <p className="level-card-requirement"><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name}</p>}
     <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
@@ -355,7 +355,7 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
     {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : level && <article className="level-detail-card">
       <iframe className="level-detail-video" src={youtubeEmbed(level.showcase_url)} title={`${level.name} YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
       <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span></div>
-      <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop} {level.difficulty_estimate}</p>
+      <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
       <p>{t.createdBy} {level.creator_display_name || level.creator_username}</p>
       {level.description && <p className="level-detail-description">{level.description}</p>}
       <p><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p>
@@ -397,7 +397,7 @@ function ActivityCard({ item, kind, language, onOpen }) {
     <a className="created-level-image-link" href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><img className="created-level-image" src={image} alt={item.name} loading="lazy"/></a>
     <div className="created-level-content"><div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
       <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{item.name}</button>
-      <p className="level-card-difficulty">{t.difficultyTop} {item.difficulty_estimate}</p>
+      <p className="level-card-difficulty">{t.difficultyTop}{item.difficulty_estimate}</p>
       <p>{t.applicationCount}: <strong>{item.application_count}</strong></p>
       {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
       <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
@@ -408,7 +408,7 @@ function ActivityCard({ item, kind, language, onOpen }) {
     <a href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><img className="verification-entry-image" src={image} alt={item.name} loading="lazy"/></a>
     <div className="verification-entry-main"><div className="verification-entry-meta"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
       <button className="verification-entry-title" type="button" onClick={onOpen}>{item.name}</button>
-      <p>{t.createdBy} {item.creator_display_name || item.creator_username} · {t.difficultyTop} {item.difficulty_estimate}</p>
+      <p>{t.createdBy} {item.creator_display_name || item.creator_username} · {t.difficultyTop}{item.difficulty_estimate}</p>
       <p>{t.appliedAt}: {new Date(item.applied_at).toLocaleDateString(language === 'es' ? 'es-AR' : 'en-US')}</p>
       {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
       <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>

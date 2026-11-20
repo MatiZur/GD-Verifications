@@ -155,7 +155,10 @@
 .level-details-content { position: relative; width: 100%; padding: 18px 0 4px; grid-column: 1 / -1; }
 .level-detail-card { padding: 8px 0 0; border: 0; border-radius: 0; background: transparent; }
 .level-modal-backdrop { position: fixed; inset: 0; z-index: 90; display: block; padding: 24px 0; background: rgba(5,5,12,.82); backdrop-filter: blur(8px); }
-.level-modal { width: min(calc(100% - 32px), 940px); margin: 0 auto; border: 0; border-radius: 16px; background: #101018; box-shadow: 0 24px 70px rgba(0,0,0,.5); }
+.level-modal { width: min(calc(100% - 32px), 940px); max-height: calc(100vh - 48px); margin: 0 auto; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(167,139,250,.58) transparent; border: 0; border-radius: 16px; background: #101018; box-shadow: 0 24px 70px rgba(0,0,0,.5); }
+.level-modal::-webkit-scrollbar { width: 8px; }
+.level-modal::-webkit-scrollbar-track { background: transparent; }
+.level-modal::-webkit-scrollbar-thumb { border: 2px solid #101018; border-radius: 8px; background: rgba(167,139,250,.58); }
 .level-details-close { position: sticky; top: 0; z-index: 2; display: block; width: 38px; height: 38px; margin: 0 0 -38px auto; border: 1px solid var(--line); border-radius: 50%; background: rgba(17,17,26,.9); color: #fff; font-size: 25px; }
 .level-chat { width: 100%; max-width: 1120px; margin: 0 auto; padding-top: 8px; }
 .level-chat-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
@@ -208,7 +211,7 @@
   .verification-entry { grid-template-columns: 105px minmax(0, 1fr); gap: 10px; padding: 9px; }
   .verification-entry-image { width: 105px; height: 70px; }
   .level-modal-backdrop { padding: 10px 0; }
-  .level-modal { width: calc(100% - 20px); }
+  .level-modal { width: calc(100% - 20px); max-height: calc(100vh - 20px); }
   .level-details-content { padding: 14px 0; }
   .level-detail-card { padding: 0; }
   .applicant-heading { flex-direction: column; }

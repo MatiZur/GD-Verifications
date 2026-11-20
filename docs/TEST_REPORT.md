@@ -39,6 +39,15 @@ Comprobaciones de T-14 (imagen cross-origin, modal y navegación):
 | Imagen del nivel `asd` en `/levels` | **PASS** — natural size 1600×900 | API responde HTTP 200 (`image/webp`, 90 KB) con `Cross-Origin-Resource-Policy: cross-origin`; el navegador la decodifica entre puertos. |
 | Modal de detalles en `/levels` | **PASS** | Se verificó superpuesto, mantiene la ruta y su panel tiene `overflow: visible`/`max-height: none`, sin scroll interno. |
 
+Comprobaciones de T-15:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 17 tests, 0 fallos | Suite completa sin regresiones. |
+| `cd frontend && npm run build` | **PASS** | Vite compiló el frontend actualizado. |
+| Scroll del modal | **PASS** | `overflow-y: auto`; al limitarlo a 300 px, el contenido (765 px) se desplaza dentro del panel. |
+| Etiqueta de dificultad | **PASS** | En catálogo y detalles se muestra `Top ~1`, sin espacio entre `~` y el número. |
+
 Comprobaciones ejecutadas después de los últimos cambios de aplicación.
 
 ## Cobertura actual y límites
