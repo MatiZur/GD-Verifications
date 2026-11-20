@@ -20,7 +20,7 @@ export function validateLevelInput(body, aredlLevels = []) {
       return 'La imagen debe ser JPG o WebP válida';
     }
     const encoded = body.image_data.slice(body.image_data.indexOf(',') + 1);
-    if (Buffer.from(encoded, 'base64').length > 1024 * 1024) return 'La imagen optimizada no puede superar 1 MB';
+    if (Buffer.from(encoded, 'base64').length > 4 * 1024 * 1024) return 'La imagen optimizada no puede superar 4 MB';
   }
 
   const rawRequiredHardestId = body.minimum_hardest_aredl_id;

@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { apiRequest, getAuthToken, saveAuthToken, clearAuthToken } from './services/api';
 import UserProfile from './components/UserProfile';
 import LanguageSelector from './components/LanguageSelector';
-import { LevelsPage, LevelDetailsPage, MyActivityPage } from './components/Levels';
+import { LevelsPage, LevelChatPage, LevelDetailsPage, MyActivityPage } from './components/Levels';
 import { copy, translateError } from './i18n';
 
 function AuthModal({ language, authMode, form, formError, submitting, onClose, onSubmit, onChange, onSwitch }) {
@@ -127,6 +127,7 @@ export default function App() {
     <Route path="/levels" element={<LevelsPage language={language} user={user} sessionLoading={sessionLoading} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
     <Route path="/levels/new" element={<LevelsPage create language={language} user={user} sessionLoading={sessionLoading} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
     <Route path="/levels/:id" element={<LevelDetailsPage language={language} user={user} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
+    <Route path="/levels/:id/chat" element={<LevelChatPage language={language} user={user}/>}/>
     <Route path="/my-levels" element={<MyActivityPage kind="levels" language={language} user={user} onRequireLogin={() => openAuth('login')}/>}/>
     <Route path="/my-verifications" element={<MyActivityPage kind="applications" language={language} user={user} onRequireLogin={() => openAuth('login')}/>}/>
   </Routes>

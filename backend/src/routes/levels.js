@@ -1,12 +1,14 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { pool } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
 import { isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
 import { validateApplicationSelection } from '../services/applicationRules.js';
-import { canAccessLevelChat, validateChatMessage } from '../services/chatRules.js';
+import { canAccessLevelChat, validateChatAttachment, validateChatMessage } from '../services/chatRules.js';
 
 const router = Router();
+const chatUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 } }).single('attachment');
 const levelFields = `
   l.id, l.creator_id, l.name, l.description, l.gd_level_id, l.difficulty,
   l.difficulty_estimate, l.game_mode, l.showcase_url, l.status,
@@ -159,23 +161,41 @@ router.get('/:id/chat', authenticateToken, async (req, res, next) => {
     const { creator_id: creatorId, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
     const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
     if (!authorized) return res.json({ authorized: false, messages: [] });
+    const participants = await pool.query(
+      `SELECT u.id, u.username, u.display_name, u.avatar_url,
+              CASE WHEN u.id = l.creator_id THEN 'CREATOR' ELSE 'VERIFIER' END AS participant_role
+       FROM levels l JOIN users u ON u.id = l.creator_id
+       WHERE l.id = $1
+       UNION ALL
+       SELECT u.id, u.username, u.display_name, u.avatar_url, 'VERIFIER' AS participant_role
+       FROM applications a JOIN users u ON u.id = a.verifier_id
+       WHERE a.level_id = $1 AND a.status = 'ACCEPTED'
+       ORDER BY participant_role, display_name NULLS LAST, username`,
+      [req.params.id]
+    );
     const result = await pool.query(
-      `SELECT m.id, m.message, m.created_at,
+      `SELECT m.id, m.message, m.created_at, m.attachment_mime_type, m.attachment_name,
               u.id AS sender_id, u.username AS sender_username,
               u.display_name AS sender_display_name, u.avatar_url AS sender_avatar_url
        FROM level_messages m JOIN users u ON u.id = m.sender_id
        WHERE m.level_id = $1 ORDER BY m.created_at DESC, m.id DESC LIMIT 100`,
       [req.params.id]
     );
-    res.json({ authorized: true, messages: result.rows.reverse() });
+    res.json({ authorized: true, participants: participants.rows, messages: result.rows.reverse() });
   } catch (error) { next(error); }
 });
 
-router.post('/:id/messages', authenticateToken, async (req, res, next) => {
+router.post('/:id/messages', authenticateToken, (req, res, next) => {
+  chatUpload(req, res, (uploadError) => {
+    if (uploadError) return res.status(400).json({ error: uploadError.code === 'LIMIT_FILE_SIZE' ? 'El archivo supera el límite de 25 MB' : 'No se pudo procesar el archivo adjunto' });
+    next();
+  });
+}, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
-    const validationError = validateChatMessage(req.body?.message);
+    const validationError = validateChatMessage(req.body?.message) || validateChatAttachment(req.file);
     if (validationError) return res.status(400).json({ error: validationError });
+    if (!req.file && !req.body?.message?.trim()) return res.status(400).json({ error: 'El mensaje necesita texto o un archivo adjunto' });
     const permission = await pool.query(
       `SELECT l.creator_id,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
@@ -188,10 +208,10 @@ router.post('/:id/messages', authenticateToken, async (req, res, next) => {
     const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
     if (!authorized) return res.status(403).json({ error: 'Solo el creador y los verificadores aceptados pueden usar este chat' });
     const result = await pool.query(
-      `INSERT INTO level_messages (level_id, sender_id, message)
-       VALUES ($1, $2, $3)
-       RETURNING id, message, created_at`,
-      [req.params.id, req.user.id, req.body.message.trim()]
+      `INSERT INTO level_messages (level_id, sender_id, message, attachment_data, attachment_mime_type, attachment_name)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, message, created_at, attachment_mime_type, attachment_name`,
+      [req.params.id, req.user.id, req.body?.message?.trim() || '', req.file?.buffer ?? null, req.file?.mimetype ?? null, req.file?.originalname.slice(0, 255) ?? null]
     );
     const message = result.rows[0];
     const sender = await pool.query(
@@ -201,6 +221,28 @@ router.post('/:id/messages', authenticateToken, async (req, res, next) => {
       [req.user.id]
     );
     res.status(201).json({ message: { ...message, ...sender.rows[0] } });
+  } catch (error) { next(error); }
+});
+
+router.get('/:id/messages/:messageId/attachment', authenticateToken, async (req, res, next) => {
+  try {
+    if (!isLevelId(req.params.id) || !isLevelId(req.params.messageId)) return res.status(404).end();
+    const permission = await pool.query(
+      `SELECT l.creator_id,
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
+       FROM levels l WHERE l.id = $1`,
+      [req.params.id, req.user.id]
+    );
+    const p = permission.rows[0];
+    if (!p || !canAccessLevelChat({ creatorId: p.creator_id, userId: req.user.id, hasAcceptedVerifiers: p.has_verifiers, isAcceptedVerifier: p.is_verifier })) return res.status(403).end();
+    const result = await pool.query(
+      'SELECT attachment_data, attachment_mime_type FROM level_messages WHERE id = $1 AND level_id = $2',
+      [req.params.messageId, req.params.id]
+    );
+    const attachment = result.rows[0];
+    if (!attachment?.attachment_data) return res.status(404).end();
+    res.type(attachment.attachment_mime_type).set('Cache-Control', 'private, no-store').send(attachment.attachment_data);
   } catch (error) { next(error); }
 });
 

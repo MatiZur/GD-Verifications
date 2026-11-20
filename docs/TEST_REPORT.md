@@ -21,7 +21,16 @@ Fecha de ejecución local: 2026-11-20. Entorno: Node.js 24.22.0; PostgreSQL loca
 | `cd frontend && npm run build` tras chat y vistas | **PASS** | Vite produjo `dist/`. |
 | Migración `008_level_chat.sql` en PostgreSQL local | **PASS** | Tabla e índice de mensajes creados. |
 | Endpoint de chat sin token | **PASS** | Responde HTTP 401; las reglas de acceso para creador/verificadores se validan además en backend. |
-| Apertura/cierre de detalles desde el catálogo | **PASS** | Se abre un diálogo y cierra conservando la ruta/lista actual. |
+| Apertura/cierre de detalles desde el catálogo | **PASS (anterior)** | Se comprobó la versión modal previa; T-13 la reemplaza por expansión en línea y requiere validación visual actualizada. |
+
+Comprobaciones de T-13 (chat multimedia, detalle integrado y calidad de imágenes):
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 17 tests, 0 fallos | Incluye validación determinista de firma, tipo y tamaño de adjuntos. |
+| `cd frontend && npm run build` | **PASS** | Vite compiló el chat independiente y los detalles integrados. |
+| Migración `009_chat_attachments.sql` en PostgreSQL local | **PASS** | Ejecutada correctamente. En Render también debe aplicarse antes de habilitar adjuntos. |
+| Endpoint de chat local sin token | **PASS** — HTTP 401 | Confirma que la ruta continúa requiriendo autenticación. |
 
 Comprobaciones ejecutadas después de los últimos cambios de aplicación.
 

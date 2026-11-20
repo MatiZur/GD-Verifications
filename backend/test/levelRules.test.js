@@ -24,12 +24,12 @@ test('level publication rejects invalid names, YouTube URLs, modes, estimates, a
   assert.match(validateLevelInput({ ...body, minimum_hardest_aredl_id: 0 }, []), /hardest mínimo/);
 });
 
-test('level publication accepts optional optimized 16:9-compatible JPG or WebP payloads and rejects unsafe images', () => {
+test('level publication accepts optional optimized 16:9-compatible JPG or WebP payloads up to 4 MB', () => {
   const encodedImage = `data:image/webp;base64,${Buffer.from('image-bytes').toString('base64')}`;
   assert.equal(validateLevelInput({ ...body, image_data: encodedImage }), null);
   assert.match(validateLevelInput({ ...body, image_data: 'data:image/svg+xml;base64,PHN2Zz4=' }), /JPG o WebP/);
-  const oversized = `data:image/jpeg;base64,${Buffer.alloc(1024 * 1024 + 1).toString('base64')}`;
-  assert.match(validateLevelInput({ ...body, image_data: oversized }), /no puede superar 1 MB/);
+  const oversized = `data:image/jpeg;base64,${Buffer.alloc(4 * 1024 * 1024 + 1).toString('base64')}`;
+  assert.match(validateLevelInput({ ...body, image_data: oversized }), /no puede superar 4 MB/);
 });
 
 test('minimum hardest comparison treats a lower AREDL position as harder', () => {

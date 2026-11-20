@@ -14,7 +14,7 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173'
 }));
 
-app.use(express.json({ limit: '3mb' }));
+app.use(express.json({ limit: '8mb' }));
 
 // HEALTH CHECK
 app.get('/api/v1/health', async (_req, res) => {

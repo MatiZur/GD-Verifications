@@ -2,7 +2,7 @@ export const copy = {
   es: {
     levels: 'Niveles', about: 'Acerca de', loading: 'Cargando...', profile: 'Mi perfil', logout: 'Cerrar sesión', login: 'Iniciar sesión', myLevels: 'Mis niveles', myVerifications: 'Mis verificaciones', accountProfile: 'Perfil', accountVerifications: 'Verificaciones', createdLevels: 'Niveles creados',
     levelApplicants: 'Postulantes', levelApplicantsIntro: 'Elegí uno o varios postulantes para asignarles la verificación.', loadingApplicants: 'Cargando postulantes...', noApplicants: 'Todavía no hay postulantes para este nivel.', selectApplicant: 'Seleccionar postulante', selectAllPending: 'Seleccionar pendientes', clearSelection: 'Limpiar selección', applicantHardest: 'Hardest correspondiente', selectedApplicants: '{count} seleccionados', acceptSelected: 'Aceptar seleccionados', acceptingApplicants: 'Aceptando...', applicantsAccepted: 'Se aceptaron {count} postulaciones.',
-    levelChat: 'Chat del nivel', levelChatAudience: 'Conversación compartida entre el creador y todos los verificadores aceptados.', chatAutoRefresh: 'Se actualiza automáticamente', chatEmpty: 'Todavía no hay mensajes. ¡Empezá la conversación!', chatPlaceholder: 'Escribí un mensaje...', chatSend: 'Enviar', chatSending: 'Enviando...',
+    levelChat: 'Chat del nivel', levelChatAudience: 'Conversación compartida entre el creador y todos los verificadores aceptados.', chatAutoRefresh: 'Se actualiza automáticamente', chatEmpty: 'Todavía no hay mensajes. ¡Empezá la conversación!', chatPlaceholder: 'Escribí un mensaje...', chatSend: 'Enviar', chatSending: 'Enviando...', chatParticipants: 'Participantes', chatAttach: 'Adjuntar imagen o video', chatAttachmentHelp: 'Imágenes hasta 8 MB; videos MP4 o WebM hasta 25 MB.', removeAttachment: 'Quitar archivo adjunto', chatNotParticipant: 'Solo el creador y los verificadores aceptados pueden participar en este chat.', signInToUseChat: 'Iniciá sesión para usar el chat.', loadingChat: 'Cargando chat...', backToLevel: '← Volver al nivel', levelCreator: 'Creador', verifierRole: 'Verificador', openLevelChat: 'Abrir chat', openVideo: 'Abrir video',
     hero1: 'Cada nivel merece', hero2: 'un verificador.', homeCopy: 'Publicá tus niveles, encontrá jugadores dispuestos a verificarlos y seguí todo el proceso en un solo lugar.',
     browse: 'Explorar niveles', publish: 'Publicar un nivel', catalogSoon: 'El catálogo de niveles estará disponible próximamente.', publishSoon: 'La publicación de niveles estará disponible próximamente.',
     closeNotice: 'Cerrar aviso', closeLevelDetails: 'Cerrar detalles del nivel', publishLevels: 'Publicá niveles', publishText: 'Compartí tu nivel, agregá un video de YouTube y buscá alguien que pueda verificarlo.', findVerifiers: 'Encontrá verificadores', findText: 'Postulate para verificar niveles y esperá la aprobación de su creador.', tracking: 'Seguimiento claro', trackingText: 'Recibí notificaciones y registrá las pruebas de cada verificación.', footer: 'Una comunidad para creadores y jugadores de Geometry Dash.',
@@ -14,7 +14,7 @@ export const copy = {
   en: {
     levels: 'Levels', about: 'About', loading: 'Loading...', profile: 'My profile', logout: 'Log out', login: 'Log in', myLevels: 'My levels', myVerifications: 'My verifications', accountProfile: 'Profile', accountVerifications: 'Verifications', createdLevels: 'Created levels',
     levelApplicants: 'Applicants', levelApplicantsIntro: 'Select one or more applicants to assign them verification.', loadingApplicants: 'Loading applicants...', noApplicants: 'There are no applicants for this level yet.', selectApplicant: 'Select applicant', selectAllPending: 'Select pending', clearSelection: 'Clear selection', applicantHardest: 'Relevant hardest', selectedApplicants: '{count} selected', acceptSelected: 'Accept selected', acceptingApplicants: 'Accepting...', applicantsAccepted: '{count} applications accepted.',
-    levelChat: 'Level chat', levelChatAudience: 'Shared conversation between the creator and all accepted verifiers.', chatAutoRefresh: 'Refreshes automatically', chatEmpty: 'No messages yet. Start the conversation!', chatPlaceholder: 'Write a message...', chatSend: 'Send', chatSending: 'Sending...',
+    levelChat: 'Level chat', levelChatAudience: 'Shared conversation between the creator and all accepted verifiers.', chatAutoRefresh: 'Refreshes automatically', chatEmpty: 'No messages yet. Start the conversation!', chatPlaceholder: 'Write a message...', chatSend: 'Send', chatSending: 'Sending...', chatParticipants: 'Participants', chatAttach: 'Attach image or video', chatAttachmentHelp: 'Images up to 8 MB; MP4 or WebM videos up to 25 MB.', removeAttachment: 'Remove attachment', chatNotParticipant: 'Only the creator and accepted verifiers can join this chat.', signInToUseChat: 'Log in to use the chat.', loadingChat: 'Loading chat...', backToLevel: '← Back to level', levelCreator: 'Creator', verifierRole: 'Verifier', openLevelChat: 'Open chat', openVideo: 'Open video',
     hero1: 'Every level deserves', hero2: 'a verifier.', homeCopy: 'Submit your levels, find players willing to verify them, and follow the whole process in one place.',
     browse: 'Browse levels', publish: 'Submit a level', catalogSoon: 'The level catalog will be available soon.', publishSoon: 'Level submissions will be available soon.',
     closeNotice: 'Close notice', closeLevelDetails: 'Close level details', publishLevels: 'Submit levels', publishText: 'Share your level, add a YouTube video, and find someone who can verify it.', findVerifiers: 'Find verifiers', findText: 'Apply to verify levels and wait for their creator’s approval.', tracking: 'Clear tracking', trackingText: 'Get notifications and keep track of verification proof.', footer: 'A community for Geometry Dash creators and players.',
@@ -25,7 +25,24 @@ export const copy = {
   }
 };
 
+Object.assign(copy.es, {
+  classicMode: 'Clásico',
+  levelImageHelp: 'Elegí una imagen; se recorta al centro a 16:9 y se guarda en JPG de alta calidad (1920×1080, hasta 4 MB). Si no cargás una, usamos la miniatura del video.',
+  levelImageTooLarge: 'La imagen optimizada supera 4 MB.'
+});
+Object.assign(copy.en, {
+  levelImageHelp: 'Choose an image; it will be center-cropped to 16:9 and saved as a high-quality JPG (1920×1080, up to 4 MB). If omitted, the video thumbnail will be used.',
+  levelImageTooLarge: 'The optimized image exceeds 4 MB.'
+});
+
 const errors = {
+  'Adjuntá una imagen JPG, PNG o WebP, o un video MP4 o WebM': 'Attach a JPG, PNG, or WebP image, or an MP4 or WebM video',
+  'La imagen adjunta supera 8 MB': 'The attached image exceeds 8 MB',
+  'El video adjunto supera 25 MB': 'The attached video exceeds 25 MB',
+  'El archivo adjunto no coincide con su formato': 'The attachment content does not match its file type',
+  'El archivo supera el límite de 25 MB': 'The file exceeds the 25 MB limit',
+  'No se pudo procesar el archivo adjunto': 'The attachment could not be processed',
+  'El mensaje necesita texto o un archivo adjunto': 'A message needs text or an attachment',
   'Usuario no encontrado': 'User not found', 'Nivel no encontrado': 'Level not found', 'No autenticado': 'Not authenticated', 'Sesión inválida o expirada': 'Session expired or invalid',
   'Credenciales incorrectas': 'Incorrect credentials', 'Ese nombre de usuario o email ya está registrado': 'That username or email is already registered',
   'Todos los campos son obligatorios': 'All fields are required', 'El email no es válido': 'Invalid email address',

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { apiRequest, apiUrl } from '../services/api';
+import { apiBlob, apiRequest, apiUrl } from '../services/api';
 import { copy, translateError } from '../i18n';
 
 function youtubeThumbnail(url) {
@@ -9,6 +9,15 @@ function youtubeThumbnail(url) {
     const id = parsed.hostname.endsWith('youtu.be') ? parsed.pathname.slice(1)
       : parsed.searchParams.get('v') || parsed.pathname.match(/\/(?:embed|shorts)\/([^/?]+)/)?.[1];
     return id ? `https://img.youtube.com/vi/${encodeURIComponent(id)}/hqdefault.jpg` : '';
+  } catch { return ''; }
+}
+
+function youtubeEmbed(url) {
+  try {
+    const parsed = new URL(url);
+    const id = parsed.hostname.endsWith('youtu.be') ? parsed.pathname.slice(1)
+      : parsed.searchParams.get('v') || parsed.pathname.match(/\/(?:embed|shorts)\/([^/?]+)/)?.[1];
+    return id && /^[\w-]{11}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : '';
   } catch { return ''; }
 }
 
@@ -41,16 +50,15 @@ function LevelCard({ level, language, onOpen }) {
   const modeLabel = level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode;
   const statusLabel = level.status === 'VERIFIED' ? t.statusVerified : level.status === 'IN_PROGRESS' ? t.statusInProgress : t.statusAvailable;
   return <article className="level-card">
-    <button className="level-card-image-link" type="button" onClick={onOpen} aria-label={`${t.levelDetails}: ${level.name}`}>
+    <a className="level-card-image-link" href={level.showcase_url} aria-label={`${t.openVideo}: ${level.name}`}>
       <img className="level-card-image" src={level.has_image ? apiUrl(`/levels/${level.id}/image`) : youtubeThumbnail(level.showcase_url)} alt={level.name} loading="lazy"/>
-    </button>
+    </a>
     <div className="level-card-top"><span className="level-mode">{modeLabel}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{statusLabel}</span></div>
     <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{level.name}</button>
     <p className="level-card-difficulty">{t.difficultyTop} {level.difficulty_estimate}</p>
     <p className="level-card-creator">{t.createdBy} {level.creator_display_name || level.creator_username}</p>
     {level.minimum_hardest_aredl_name && <p className="level-card-requirement"><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name}</p>}
-    <div className="level-card-actions"><a className="button button-outline" href={level.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a>
-      <button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
+    <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
   </article>;
 }
 
@@ -121,9 +129,9 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
               const file = event.target.files?.[0]; if (!file) return;
               if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setFormError(t.levelImageType); event.target.value = ''; return; }
               if (file.size > 8 * 1024 * 1024) { setFormError(t.levelImageOriginalTooLarge); event.target.value = ''; return; }
-              try { const image = await createImageBitmap(file); const targetRatio = 16 / 9; const cropWidth = Math.min(image.width, image.height * targetRatio); const cropHeight = cropWidth / targetRatio; const canvas = document.createElement('canvas'); canvas.width = 1600; canvas.height = 900; canvas.getContext('2d').drawImage(image, (image.width - cropWidth) / 2, (image.height - cropHeight) / 2, cropWidth, cropHeight, 0, 0, 1600, 900); image.close();
-                const blob = await new Promise((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error(t.levelImageError)), 'image/webp', 0.82));
-                if (blob.size > 1024 * 1024) throw new Error(t.levelImageTooLarge);
+              try { const image = await createImageBitmap(file); const targetRatio = 16 / 9; const cropWidth = Math.min(image.width, image.height * targetRatio); const cropHeight = cropWidth / targetRatio; const canvas = document.createElement('canvas'); canvas.width = 1920; canvas.height = 1080; const context = canvas.getContext('2d'); if (!context) throw new Error(t.levelImageError); context.imageSmoothingQuality = 'high'; context.drawImage(image, (image.width - cropWidth) / 2, (image.height - cropHeight) / 2, cropWidth, cropHeight, 0, 0, 1920, 1080); image.close();
+                const blob = await new Promise((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error(t.levelImageError)), 'image/jpeg', 0.94));
+                if (blob.size > 4 * 1024 * 1024) throw new Error(t.levelImageTooLarge);
                 const reader = new FileReader(); reader.onload = () => setForm((current) => ({ ...current, image_data: reader.result })); reader.readAsDataURL(blob);
               } catch (imageError) { setFormError(imageError.message || t.levelImageError); } finally { event.target.value = ''; }
             }}/><small>{t.levelImageHelp}</small>
@@ -139,10 +147,9 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
         </header>
         {notice && <p className="level-success" role="status">{notice}</p>}
         {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : levels.length === 0 ? <p className="levels-message">{t.emptyLevels}</p> :
-          <section className="levels-grid catalog-levels-grid">{levels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section>}
+          <section className="levels-grid catalog-levels-grid">{levels.map((level) => <div className="level-list-item" key={level.id}><LevelCard level={level} language={language} onOpen={() => setOpenLevelId(openLevelId === level.id ? null : level.id)}/>{openLevelId === level.id && <LevelDetailsView id={level.id} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}</div>)}</section>}
       </>}
     </div>
-    {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </main>;
 }
 
@@ -211,6 +218,8 @@ function LevelChat({ levelId, language, user }) {
   const [authorized, setAuthorized] = useState(false);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
+  const [attachment, setAttachment] = useState(null);
+  const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -225,6 +234,7 @@ function LevelChat({ levelId, language, user }) {
         const data = await apiRequest(`/levels/${encodeURIComponent(levelId)}/chat`);
         if (!active) return;
         setAuthorized(data.authorized);
+        setParticipants(data.participants || []);
         setMessages((current) => current.length === data.messages.length && String(current.at(-1)?.id || '') === String(data.messages.at(-1)?.id || '') ? current : data.messages);
         if (!data.authorized && pollRef.current) { window.clearInterval(pollRef.current); pollRef.current = null; }
         setError('');
@@ -241,36 +251,76 @@ function LevelChat({ levelId, language, user }) {
 
   async function sendMessage(event) {
     event.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() && !attachment) return;
     setSending(true); setError('');
     try {
+      const body = new FormData();
+      if (message.trim()) body.append('message', message.trim());
+      if (attachment) body.append('attachment', attachment);
       const data = await apiRequest(`/levels/${encodeURIComponent(levelId)}/messages`, {
-        method: 'POST', body: JSON.stringify({ message })
+        method: 'POST', body
       });
       setMessages((current) => [...current, data.message].slice(-100));
       setMessage('');
+      setAttachment(null);
     } catch (sendError) { setError(translateError(sendError.message, language)); }
     finally { setSending(false); }
   }
 
-  if (!user || loading || !authorized) return null;
+  if (!user) return <p className="levels-message">{t.signInToUseChat}</p>;
+  if (loading) return <p className="levels-message">{t.loadingChat}</p>;
+  if (!authorized) return <p className="levels-message level-error">{t.chatNotParticipant}</p>;
   return <section className="level-chat" aria-label={t.levelChat}>
-    <header className="level-chat-heading"><div><h2>{t.levelChat}</h2><p>{t.levelChatAudience}</p></div><span>{t.chatAutoRefresh}</span></header>
+    <header className="level-chat-heading"><div><h2>{t.levelChat}</h2><p>{t.levelChatAudience}</p><div className="chat-participants" aria-label={t.chatParticipants}>{participants.map((participant) => <Link className="chat-participant" key={participant.id} to={`/user/${encodeURIComponent(participant.username)}`}>
+      {participant.avatar_url ? <img src={participant.avatar_url} alt=""/> : <span>{(participant.display_name || participant.username).slice(0, 1).toUpperCase()}</span>}
+      <span>{participant.display_name || participant.username}<small>{participant.participant_role === 'CREATOR' ? t.levelCreator : t.verifierRole}</small></span>
+    </Link>)}</div></div><span>{t.chatAutoRefresh}</span></header>
     <div className="level-chat-messages" aria-live="polite">
       {messages.length === 0 ? <p className="level-chat-empty">{t.chatEmpty}</p> : messages.map((item) => {
         const ownMessage = String(item.sender_id) === String(user.id);
         return <article className={`chat-message${ownMessage ? ' own-message' : ''}`} key={item.id}>
           {item.sender_avatar_url ? <img className="chat-avatar" src={item.sender_avatar_url} alt=""/> : <span className="chat-avatar chat-avatar-fallback">{(item.sender_display_name || item.sender_username).slice(0, 1).toUpperCase()}</span>}
-          <div className="chat-message-body"><div className="chat-message-meta"><strong>{item.sender_display_name || item.sender_username}</strong><time dateTime={item.created_at}>{new Date(item.created_at).toLocaleString(language === 'es' ? 'es-AR' : 'en-US')}</time></div><p>{item.message}</p></div>
+          <div className="chat-message-body"><div className="chat-message-meta"><strong>{item.sender_display_name || item.sender_username}</strong><time dateTime={item.created_at}>{new Date(item.created_at).toLocaleString(language === 'es' ? 'es-AR' : 'en-US')}</time></div>
+            {item.message && <p>{item.message}</p>}{item.attachment_mime_type && <ChatAttachment levelId={levelId} item={item}/>}
+          </div>
         </article>;
       })}<div ref={endRef}/>
     </div>
     {error && <p className="level-error" role="alert">{error}</p>}
     <form className="level-chat-form" onSubmit={sendMessage}>
       <textarea value={message} onChange={(event) => setMessage(event.target.value)} maxLength={2000} rows={2} placeholder={t.chatPlaceholder} aria-label={t.chatPlaceholder}/>
-      <button className="button button-primary" type="submit" disabled={sending || !message.trim()}>{sending ? t.chatSending : t.chatSend}</button>
+      <label className="button button-outline chat-attachment-button">{t.chatAttach}<input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" onChange={(event) => setAttachment(event.target.files?.[0] || null)} hidden/></label>
+      {attachment && <span className="chat-attachment-name">{attachment.name}<button type="button" onClick={() => setAttachment(null)} aria-label={t.removeAttachment}>×</button></span>}
+      <button className="button button-primary" type="submit" disabled={sending || (!message.trim() && !attachment)}>{sending ? t.chatSending : t.chatSend}</button>
     </form>
+    <p className="chat-upload-help">{t.chatAttachmentHelp}</p>
   </section>;
+}
+
+function ChatAttachment({ levelId, item }) {
+  const [url, setUrl] = useState('');
+  useEffect(() => {
+    let active = true;
+    let objectUrl;
+    apiBlob(`/levels/${encodeURIComponent(levelId)}/messages/${encodeURIComponent(item.id)}/attachment`).then((blob) => {
+      objectUrl = URL.createObjectURL(blob);
+      if (active) setUrl(objectUrl);
+    }).catch(() => {});
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [levelId, item.id]);
+  if (!url) return null;
+  return item.attachment_mime_type.startsWith('image/')
+    ? <img className="chat-attachment-media" src={url} alt={item.attachment_name || ''}/>
+    : <video className="chat-attachment-media" src={url} controls preload="metadata"/>;
+}
+
+export function LevelChatPage({ language, user }) {
+  const { id } = useParams();
+  const t = copy[language];
+  return <main className="levels-page"><div className="levels-content">
+    <Link className="levels-back" to={`/levels/${encodeURIComponent(id)}`}>{t.backToLevel}</Link>
+    <LevelChat levelId={id} language={language} user={user}/>
+  </div></main>;
 }
 
 function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
@@ -304,17 +354,16 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
   return <div className="levels-content level-details-content">
     {onClose && <button className="level-details-close" type="button" onClick={onClose} aria-label={t.closeLevelDetails}>×</button>}
     {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : level && <article className="level-detail-card">
-      <img className="level-detail-image" src={level.has_image ? apiUrl(`/levels/${level.id}/image`) : youtubeThumbnail(level.showcase_url)} alt={level.name}/>
+      <iframe className="level-detail-video" src={youtubeEmbed(level.showcase_url)} title={`${level.name} YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
       <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span></div>
       <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop} {level.difficulty_estimate}</p>
       <p>{t.createdBy} {level.creator_display_name || level.creator_username}</p>
       {level.description && <p className="level-detail-description">{level.description}</p>}
       <p><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p>
-      <a className="button button-outline" href={level.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a>
       {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language}/> : <div className="level-apply-section"><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE'}>{applying ? t.savingApplication : t.apply}</button>
         {applicationNotice && <p className="level-success" role="status">{applicationNotice}</p>}{applicationError && <p className="level-error" role="alert">{applicationError}</p>}
       </div>}
-      <LevelChat levelId={id} language={language} user={user}/>
+      {user && <Link className="button button-outline" to={`/levels/${encodeURIComponent(id)}/chat`}>{t.openLevelChat}</Link>}
     </article>}
   </div>;
 }
@@ -325,19 +374,6 @@ export function LevelDetailsPage({ language, user, onRequireLogin }) {
   return <main className="levels-page"><LevelDetailsView id={id} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => navigate('/levels')}/></main>;
 }
 
-function LevelDetailsModal({ levelId, language, user, onRequireLogin, onClose }) {
-  useEffect(() => {
-    function closeOnEscape(event) { if (event.key === 'Escape') onClose(); }
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [onClose]);
-  return <div className="level-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="level-modal" role="dialog" aria-modal="true" aria-label={copy[language].levelDetails}>
-      <LevelDetailsView id={levelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={onClose}/>
-    </section>
-  </div>;
-}
-
 function ActivityCard({ item, kind, language, onOpen }) {
   const t = copy[language];
   const status = kind === 'levels' ? item.status : item.application_status;
@@ -346,24 +382,24 @@ function ActivityCard({ item, kind, language, onOpen }) {
     : ({ PENDING: t.activityPending, ACCEPTED: t.activityAccepted, REJECTED: t.activityRejected, WITHDRAWN: t.activityWithdrawn }[status] || status);
   const image = item.has_image ? apiUrl(`/levels/${item.id}/image`) : youtubeThumbnail(item.showcase_url);
   if (kind === 'levels') return <article className="created-level-card">
-    <img className="created-level-image" src={image} alt={item.name} loading="lazy"/>
+    <a className="created-level-image-link" href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><img className="created-level-image" src={image} alt={item.name} loading="lazy"/></a>
     <div className="created-level-content"><div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
       <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{item.name}</button>
       <p className="level-card-difficulty">{t.difficultyTop} {item.difficulty_estimate}</p>
       <p>{t.applicationCount}: <strong>{item.application_count}</strong></p>
       {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
-      <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button><a className="button button-outline" href={item.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a></div>
+      <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
     </div>
   </article>;
 
   return <article className="verification-entry">
-    <img className="verification-entry-image" src={image} alt={item.name} loading="lazy"/>
+    <a href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><img className="verification-entry-image" src={image} alt={item.name} loading="lazy"/></a>
     <div className="verification-entry-main"><div className="verification-entry-meta"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
       <button className="verification-entry-title" type="button" onClick={onOpen}>{item.name}</button>
       <p>{t.createdBy} {item.creator_display_name || item.creator_username} · {t.difficultyTop} {item.difficulty_estimate}</p>
       <p>{t.appliedAt}: {new Date(item.applied_at).toLocaleDateString(language === 'es' ? 'es-AR' : 'en-US')}</p>
       {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
-      <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button><a className="button button-outline" href={item.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a></div>
+      <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
     </div>
   </article>;
 }
@@ -395,7 +431,6 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
       : loading ? <p className="levels-message">{t.loadingLevels}</p>
         : error ? <p className="levels-message level-error">{error}</p>
           : items.length === 0 ? <p className="levels-message">{kind === 'levels' ? t.emptyMyLevels : t.emptyMyVerifications}</p>
-            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(item.id)}/>)}</section>}
-    {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
+            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <div className="activity-level-item" key={kind === 'levels' ? item.id : item.application_id}><ActivityCard item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(openLevelId === item.id ? null : item.id)}/>{openLevelId === item.id && <LevelDetailsView id={item.id} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}</div>)}</section>}
   </div></main>;
 }
