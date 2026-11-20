@@ -6,7 +6,7 @@ Fecha de ejecución local: 2026-11-20. Entorno: Node.js 24.22.0; PostgreSQL loca
 
 | Comprobación | Resultado | Alcance |
 | --- | --- | --- |
-| `cd backend && npm test` | **PASS** — 13 tests, 0 fallos | Tests unitarios puros de registro, validación de niveles, selección de postulaciones, URL y avatares. |
+| `cd backend && npm test` | **PASS** — 16 tests, 0 fallos | Tests unitarios puros de registro, niveles, selección múltiple, chat, URL y avatares. |
 | `cd frontend && npm run build` | **PASS** — Vite produjo `dist/` | Compilación de producción Vite. |
 | Migración `005_level_requirements.sql` en PostgreSQL local | **PASS** | Columnas y restricciones de modalidad/Top/requisito mínimo verificadas en la tabla `levels`. |
 | Pruebas unitarias backend tras T-10 | **PASS** | `npm test`: 11 pruebas aprobadas, incluyendo validación de imágenes opcionales. |
@@ -17,6 +17,11 @@ Fecha de ejecución local: 2026-11-20. Entorno: Node.js 24.22.0; PostgreSQL loca
 | `cd frontend && npm run build` tras menú y selección múltiple | **PASS** | Vite produjo `dist/`. |
 | Migración `007_multiple_accepted_applications.sql` en PostgreSQL local | **PASS** | Eliminada la restricción de aceptación única por nivel. |
 | Rutas de consulta y selección de postulantes sin token | **PASS** | GET y PATCH responden HTTP 401 sin autenticación. |
+| `cd backend && npm test` tras chat y vistas | **PASS** — 16 tests, 0 fallos | Incluye límites de mensajes y autorización de creador/verificadores aceptados. |
+| `cd frontend && npm run build` tras chat y vistas | **PASS** | Vite produjo `dist/`. |
+| Migración `008_level_chat.sql` en PostgreSQL local | **PASS** | Tabla e índice de mensajes creados. |
+| Endpoint de chat sin token | **PASS** | Responde HTTP 401; las reglas de acceso para creador/verificadores se validan además en backend. |
+| Apertura/cierre de detalles desde el catálogo | **PASS** | Se abre un diálogo y cierra conservando la ruta/lista actual. |
 
 Comprobaciones ejecutadas después de los últimos cambios de aplicación.
 

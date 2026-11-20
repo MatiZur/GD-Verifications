@@ -10,10 +10,11 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 
 ## Próximas tareas (pendientes, no desplegadas)
 
-- [ ] **T-04 — Publicar infraestructura.** Crear recursos en Render, ejecutar migraciones 001–007 y registrar una URL saludable de la API; configurar Cloudflare Pages y `VITE_API_URL`.
+- [ ] **T-04 — Publicar infraestructura.** Crear recursos en Render, ejecutar migraciones 001–008 y registrar una URL saludable de la API; configurar Cloudflare Pages y `VITE_API_URL`.
 - [x] **T-05 — Publicación y catálogo de niveles.** API y pantallas para publicar, descubrir y consultar niveles; validación de YouTube, modalidad y dificultad Top; postulación con requisito mínimo de hardest validado por AREDL. Confirmación: `Feat: Publicación y catálogo de niveles con requisito de hardest`.
 - [x] **T-10 — Navegación común, imágenes y actividad personal.** Header/footer compartidos, imagen 16:9 con miniatura de YouTube de respaldo, y vistas privadas de niveles publicados y postulaciones. Confirmación: `Feat: Actividad personal e imágenes para niveles`.
 - [x] **T-11 — Menú de cuenta y selección de verificadores.** Menú con foto/nombre y acceso agrupado a perfil, verificaciones, niveles creados y cierre de sesión; selección y aceptación de uno o varios postulantes con autorización del creador. Confirmación: `Feat: Menú de cuenta y selección múltiple de verificadores`.
+- [x] **T-12 — Chat por nivel y vistas de actividad.** Chat grupal del creador con verificadores aceptados, permisos por participante, vistas diferenciadas de catálogo/propios/postulaciones y detalle modal en contexto. Confirmación: `Feat: Chat de nivel y detalles en contexto`.
 - [ ] **T-06 — Resolución de postulaciones y entregas.** La aceptación múltiple quedó implementada en T-11; continúan pendientes el rechazo individual, el envío de pruebas y sus transiciones de estado.
 - [ ] **T-07 — Notificaciones y panel administrativo.** Autorización de rol en backend, moderación y auditoría.
 - [ ] **T-08 — Pruebas de integración y recorrido end-to-end.** Probar PostgreSQL/migraciones y flujos completos en un entorno de staging.

@@ -115,7 +115,10 @@
   background: rgba(255,255,255,.035);
 }
 .level-card-image-link { display: block; overflow: hidden; aspect-ratio: 16 / 9; margin: -20px -20px 16px; border-radius: 13px 13px 0 0; background: #11111a; }
+.level-card-image-link { width: calc(100% + 40px); padding: 0; border: 0; cursor: pointer; }
 .level-card-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+.level-card-open-title { width: 100%; border: 0; padding: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.level-card-open-title:hover { color: #c4b5fd; }
 .level-detail-image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; margin-bottom: 22px; background: #11111a; }
 .level-image-preview { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
 .level-image-preview img { width: min(100%, 420px); aspect-ratio: 16 / 9; border-radius: 9px; object-fit: cover; }
@@ -137,6 +140,40 @@
 .activity-tabs a:hover, .activity-tabs a.active { background: rgba(167,139,250,.14); color: #d7caff; }
 .activity-card > p { color: #a5a2b8; font-size: 13px; line-height: 1.55; }
 .activity-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.created-levels-list { display: grid; gap: 16px; }
+.created-level-card { display: grid; grid-template-columns: minmax(220px, 34%) minmax(0, 1fr); overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; background: rgba(255,255,255,.035); }
+.created-level-image { width: 100%; height: 100%; min-height: 210px; object-fit: cover; background: #11111a; }
+.created-level-content { min-width: 0; padding: 20px; }
+.created-level-content > p { color: #a5a2b8; font-size: 13px; }
+.verification-entries { display: grid; gap: 11px; }
+.verification-entry { display: grid; grid-template-columns: 160px minmax(0, 1fr); align-items: stretch; gap: 16px; padding: 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 13px; background: rgba(25,24,37,.8); }
+.verification-entry-image { width: 160px; height: 90px; object-fit: cover; border-radius: 8px; background: #11111a; }
+.verification-entry-main { min-width: 0; }
+.verification-entry-meta { display: flex; gap: 7px; }
+.verification-entry-title { display: block; margin: 8px 0 3px; padding: 0; border: 0; background: transparent; color: #f4f2ff; text-align: left; font: 700 18px 'Space Grotesk'; cursor: pointer; }
+.verification-entry-title:hover { color: #c4b5fd; }
+.verification-entry-main > p { margin: 4px 0; color: #a5a2b8; font-size: 12px; }
+.level-modal-backdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(5,5,12,.82); backdrop-filter: blur(8px); }
+.level-modal { width: min(100%, 940px); max-height: min(92vh, 1000px); overflow: auto; border: 1px solid rgba(255,255,255,.12); border-radius: 17px; background: #101018; box-shadow: 0 30px 100px rgba(0,0,0,.55); }
+.level-details-content { position: relative; width: 100%; padding: 24px; }
+.level-details-close { position: sticky; top: 0; z-index: 2; display: block; width: 38px; height: 38px; margin: 0 0 -38px auto; border: 1px solid var(--line); border-radius: 50%; background: rgba(17,17,26,.9); color: #fff; font-size: 25px; }
+.level-chat { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+.level-chat-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.level-chat-heading h2 { margin: 0 0 4px; font: 700 20px 'Space Grotesk'; }
+.level-chat-heading p, .level-chat-heading > span { margin: 0; color: var(--muted); font-size: 12px; }
+.level-chat-messages { display: grid; align-content: start; gap: 12px; max-height: 350px; overflow: auto; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: rgba(10,10,16,.7); }
+.level-chat-empty { margin: 0; color: var(--muted); text-align: center; font-size: 13px; }
+.chat-message { display: flex; align-items: flex-start; gap: 9px; }
+.chat-avatar { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; object-fit: cover; background: #29253a; }
+.chat-avatar-fallback { display: grid; place-items: center; color: #d7caff; font-size: 12px; font-weight: 700; }
+.chat-message-body { min-width: 0; flex: 1; }
+.chat-message-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.chat-message-meta strong { font-size: 12px; }
+.chat-message-meta time { color: var(--muted); font-size: 10px; }
+.chat-message-body > p { margin: 4px 0 0; color: #e6e2f0; font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.level-chat-form { display: flex; align-items: flex-end; gap: 9px; margin-top: 10px; }
+.level-chat-form textarea { min-height: 44px; max-height: 120px; flex: 1; resize: vertical; border: 1px solid var(--line); border-radius: 9px; padding: 11px; background: #11111a; color: #f4f2ff; font: 400 13px 'DM Sans'; }
+.level-chat-form textarea:focus { outline: none; border-color: var(--accent); }
 
 .level-detail-card { max-width: 760px; margin: 0 auto; }
 .level-detail-card > p { color: #c7c2d8; line-height: 1.65; }
@@ -157,4 +194,15 @@
   .levels-login-card { padding: 20px; }
   .levels-login-card { align-items: flex-start; flex-direction: column; gap: 5px; }
   .level-card-image-link { margin: -20px -20px 16px; }
+  .created-level-card { grid-template-columns: 1fr; }
+  .created-level-image { min-height: auto; aspect-ratio: 16 / 9; }
+  .verification-entry { grid-template-columns: 105px minmax(0, 1fr); gap: 10px; padding: 9px; }
+  .verification-entry-image { width: 105px; height: 70px; }
+  .level-modal-backdrop { padding: 8px; }
+  .level-details-content { padding: 18px 12px; }
+  .applicant-heading { flex-direction: column; }
+  .applicant-card { flex-wrap: wrap; }
+  .applicant-status { margin-left: auto; }
+  .level-chat-heading { flex-direction: column; }
+  .level-chat-form { align-items: stretch; flex-direction: column; }
 }

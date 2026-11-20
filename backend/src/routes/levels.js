@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
 import { isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
 import { validateApplicationSelection } from '../services/applicationRules.js';
+import { canAccessLevelChat, validateChatMessage } from '../services/chatRules.js';
 
 const router = Router();
 const levelFields = `
@@ -82,6 +83,7 @@ router.get('/applications/mine', authenticateToken, async (req, res, next) => {
       `SELECT a.id AS application_id, a.status AS application_status, a.created_at AS applied_at,
               l.id, l.name, l.description, l.game_mode, l.difficulty_estimate, l.showcase_url,
               l.status AS level_status, l.minimum_hardest_aredl_name, l.created_at,
+              (l.image_data IS NOT NULL) AS has_image,
               owner.username AS creator_username, owner.display_name AS creator_display_name
        FROM applications a JOIN levels l ON l.id = a.level_id
        JOIN users owner ON owner.id = l.creator_id
@@ -140,6 +142,65 @@ router.get('/:id/applications', authenticateToken, async (req, res, next) => {
       [req.params.id]
     );
     res.json({ applications: result.rows });
+  } catch (error) { next(error); }
+});
+
+router.get('/:id/chat', authenticateToken, async (req, res, next) => {
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    const permission = await pool.query(
+      `SELECT l.creator_id,
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
+       FROM levels l WHERE l.id = $1`,
+      [req.params.id, req.user.id]
+    );
+    if (!permission.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
+    const { creator_id: creatorId, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
+    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
+    if (!authorized) return res.json({ authorized: false, messages: [] });
+    const result = await pool.query(
+      `SELECT m.id, m.message, m.created_at,
+              u.id AS sender_id, u.username AS sender_username,
+              u.display_name AS sender_display_name, u.avatar_url AS sender_avatar_url
+       FROM level_messages m JOIN users u ON u.id = m.sender_id
+       WHERE m.level_id = $1 ORDER BY m.created_at DESC, m.id DESC LIMIT 100`,
+      [req.params.id]
+    );
+    res.json({ authorized: true, messages: result.rows.reverse() });
+  } catch (error) { next(error); }
+});
+
+router.post('/:id/messages', authenticateToken, async (req, res, next) => {
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    const validationError = validateChatMessage(req.body?.message);
+    if (validationError) return res.status(400).json({ error: validationError });
+    const permission = await pool.query(
+      `SELECT l.creator_id,
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
+       FROM levels l WHERE l.id = $1`,
+      [req.params.id, req.user.id]
+    );
+    if (!permission.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
+    const { creator_id: creatorId, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
+    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
+    if (!authorized) return res.status(403).json({ error: 'Solo el creador y los verificadores aceptados pueden usar este chat' });
+    const result = await pool.query(
+      `INSERT INTO level_messages (level_id, sender_id, message)
+       VALUES ($1, $2, $3)
+       RETURNING id, message, created_at`,
+      [req.params.id, req.user.id, req.body.message.trim()]
+    );
+    const message = result.rows[0];
+    const sender = await pool.query(
+      `SELECT id AS sender_id, username AS sender_username,
+              display_name AS sender_display_name, avatar_url AS sender_avatar_url
+       FROM users WHERE id = $1`,
+      [req.user.id]
+    );
+    res.status(201).json({ message: { ...message, ...sender.rows[0] } });
   } catch (error) { next(error); }
 });
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { apiRequest, apiUrl } from '../services/api';
 import { copy, translateError } from '../i18n';
@@ -36,21 +36,21 @@ function AredlMinimumPicker({ levels, value, onChange, t }) {
   </div>;
 }
 
-function LevelCard({ level, language }) {
+function LevelCard({ level, language, onOpen }) {
   const t = copy[language];
   const modeLabel = level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode;
   const statusLabel = level.status === 'VERIFIED' ? t.statusVerified : level.status === 'IN_PROGRESS' ? t.statusInProgress : t.statusAvailable;
   return <article className="level-card">
-    <Link className="level-card-image-link" to={`/levels/${level.id}`}>
+    <button className="level-card-image-link" type="button" onClick={onOpen} aria-label={`${t.levelDetails}: ${level.name}`}>
       <img className="level-card-image" src={level.has_image ? apiUrl(`/levels/${level.id}/image`) : youtubeThumbnail(level.showcase_url)} alt={level.name} loading="lazy"/>
-    </Link>
+    </button>
     <div className="level-card-top"><span className="level-mode">{modeLabel}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{statusLabel}</span></div>
-    <Link className="level-card-title" to={`/levels/${level.id}`}>{level.name}</Link>
+    <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{level.name}</button>
     <p className="level-card-difficulty">{t.difficultyTop} {level.difficulty_estimate}</p>
     <p className="level-card-creator">{t.createdBy} {level.creator_display_name || level.creator_username}</p>
     {level.minimum_hardest_aredl_name && <p className="level-card-requirement"><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name}</p>}
     <div className="level-card-actions"><a className="button button-outline" href={level.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a>
-      <Link className="button button-primary" to={`/levels/${level.id}`}>{t.levelDetails}</Link></div>
+      <button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
   </article>;
 }
 
@@ -65,6 +65,7 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
   const [platformer, setPlatformer] = useState([]);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [openLevelId, setOpenLevelId] = useState(null);
   const [form, setForm] = useState({ name: '', game_mode: 'CLASSIC', difficulty_estimate: '', showcase_url: '', description: '', minimum_hardest_aredl_id: '' });
 
   useEffect(() => {
@@ -138,9 +139,10 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
         </header>
         {notice && <p className="level-success" role="status">{notice}</p>}
         {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : levels.length === 0 ? <p className="levels-message">{t.emptyLevels}</p> :
-          <section className="levels-grid">{levels.map((level) => <LevelCard key={level.id} level={level} language={language}/>)}</section>}
+          <section className="levels-grid catalog-levels-grid">{levels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section>}
       </>}
     </div>
+    {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </main>;
 }
 
@@ -204,8 +206,74 @@ function ApplicantManagement({ level, language }) {
   </section>;
 }
 
-export function LevelDetailsPage({ language, user, onRequireLogin, onChangeLanguage }) {
-  const { id } = useParams();
+function LevelChat({ levelId, language, user }) {
+  const t = copy[language];
+  const [authorized, setAuthorized] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const endRef = useRef(null);
+  const pollRef = useRef(null);
+
+  useEffect(() => {
+    if (!user) { setLoading(false); return undefined; }
+    let active = true;
+    async function refresh() {
+      try {
+        const data = await apiRequest(`/levels/${encodeURIComponent(levelId)}/chat`);
+        if (!active) return;
+        setAuthorized(data.authorized);
+        setMessages((current) => current.length === data.messages.length && String(current.at(-1)?.id || '') === String(data.messages.at(-1)?.id || '') ? current : data.messages);
+        if (!data.authorized && pollRef.current) { window.clearInterval(pollRef.current); pollRef.current = null; }
+        setError('');
+      } catch (loadError) {
+        if (active) setError(translateError(loadError.message, language));
+      } finally { if (active) setLoading(false); }
+    }
+    refresh();
+    pollRef.current = window.setInterval(refresh, 5000);
+    return () => { active = false; window.clearInterval(pollRef.current); pollRef.current = null; };
+  }, [levelId, language, user]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, [messages]);
+
+  async function sendMessage(event) {
+    event.preventDefault();
+    if (!message.trim()) return;
+    setSending(true); setError('');
+    try {
+      const data = await apiRequest(`/levels/${encodeURIComponent(levelId)}/messages`, {
+        method: 'POST', body: JSON.stringify({ message })
+      });
+      setMessages((current) => [...current, data.message].slice(-100));
+      setMessage('');
+    } catch (sendError) { setError(translateError(sendError.message, language)); }
+    finally { setSending(false); }
+  }
+
+  if (!user || loading || !authorized) return null;
+  return <section className="level-chat" aria-label={t.levelChat}>
+    <header className="level-chat-heading"><div><h2>{t.levelChat}</h2><p>{t.levelChatAudience}</p></div><span>{t.chatAutoRefresh}</span></header>
+    <div className="level-chat-messages" aria-live="polite">
+      {messages.length === 0 ? <p className="level-chat-empty">{t.chatEmpty}</p> : messages.map((item) => {
+        const ownMessage = String(item.sender_id) === String(user.id);
+        return <article className={`chat-message${ownMessage ? ' own-message' : ''}`} key={item.id}>
+          {item.sender_avatar_url ? <img className="chat-avatar" src={item.sender_avatar_url} alt=""/> : <span className="chat-avatar chat-avatar-fallback">{(item.sender_display_name || item.sender_username).slice(0, 1).toUpperCase()}</span>}
+          <div className="chat-message-body"><div className="chat-message-meta"><strong>{item.sender_display_name || item.sender_username}</strong><time dateTime={item.created_at}>{new Date(item.created_at).toLocaleString(language === 'es' ? 'es-AR' : 'en-US')}</time></div><p>{item.message}</p></div>
+        </article>;
+      })}<div ref={endRef}/>
+    </div>
+    {error && <p className="level-error" role="alert">{error}</p>}
+    <form className="level-chat-form" onSubmit={sendMessage}>
+      <textarea value={message} onChange={(event) => setMessage(event.target.value)} maxLength={2000} rows={2} placeholder={t.chatPlaceholder} aria-label={t.chatPlaceholder}/>
+      <button className="button button-primary" type="submit" disabled={sending || !message.trim()}>{sending ? t.chatSending : t.chatSend}</button>
+    </form>
+  </section>;
+}
+
+function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
   const location = useLocation();
   const t = copy[language];
   const [level, setLevel] = useState(null);
@@ -233,8 +301,8 @@ export function LevelDetailsPage({ language, user, onRequireLogin, onChangeLangu
     finally { setApplying(false); }
   }
 
-  return <main className="levels-page"><div className="levels-content">
-    <Link className="levels-back" to="/levels">← {t.levelsTitle}</Link>
+  return <div className="levels-content level-details-content">
+    {onClose && <button className="level-details-close" type="button" onClick={onClose} aria-label={t.closeLevelDetails}>×</button>}
     {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : level && <article className="level-detail-card">
       <img className="level-detail-image" src={level.has_image ? apiUrl(`/levels/${level.id}/image`) : youtubeThumbnail(level.showcase_url)} alt={level.name}/>
       <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span></div>
@@ -246,24 +314,57 @@ export function LevelDetailsPage({ language, user, onRequireLogin, onChangeLangu
       {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language}/> : <div className="level-apply-section"><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE'}>{applying ? t.savingApplication : t.apply}</button>
         {applicationNotice && <p className="level-success" role="status">{applicationNotice}</p>}{applicationError && <p className="level-error" role="alert">{applicationError}</p>}
       </div>}
+      <LevelChat levelId={id} language={language} user={user}/>
     </article>}
-  </div></main>;
+  </div>;
 }
 
-function ActivityCard({ item, kind, language }) {
+export function LevelDetailsPage({ language, user, onRequireLogin }) {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  return <main className="levels-page"><LevelDetailsView id={id} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => navigate('/levels')}/></main>;
+}
+
+function LevelDetailsModal({ levelId, language, user, onRequireLogin, onClose }) {
+  useEffect(() => {
+    function closeOnEscape(event) { if (event.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
+  return <div className="level-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="level-modal" role="dialog" aria-modal="true" aria-label={copy[language].levelDetails}>
+      <LevelDetailsView id={levelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={onClose}/>
+    </section>
+  </div>;
+}
+
+function ActivityCard({ item, kind, language, onOpen }) {
   const t = copy[language];
   const status = kind === 'levels' ? item.status : item.application_status;
   const statusText = kind === 'levels'
     ? ({ AVAILABLE: t.statusAvailable, IN_PROGRESS: t.statusInProgress, VERIFIED: t.statusVerified, PENDING_REVIEW: t.activityReview, REJECTED: t.activityRejected, CANCELLED: t.activityCancelled }[status] || status)
     : ({ PENDING: t.activityPending, ACCEPTED: t.activityAccepted, REJECTED: t.activityRejected, WITHDRAWN: t.activityWithdrawn }[status] || status);
-  return <article className="level-card activity-card">
-    <div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
-    <Link className="level-card-title" to={`/levels/${item.id}`}>{item.name}</Link>
-    <p className="level-card-difficulty">{t.difficultyTop} {item.difficulty_estimate}</p>
-    {kind === 'levels' ? <p>{t.applicationCount}: {item.application_count}</p> : <><p>{t.createdBy} {item.creator_display_name || item.creator_username}</p><p>{t.appliedAt}: {new Date(item.applied_at).toLocaleDateString(language === 'es' ? 'es-AR' : 'en-US')}</p></>}
-    {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
-    {item.description && <p className="activity-description">{item.description}</p>}
-    <div className="level-card-actions"><a className="button button-outline" href={item.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a><Link className="button button-primary" to={`/levels/${item.id}`}>{t.levelDetails}</Link></div>
+  const image = item.has_image ? apiUrl(`/levels/${item.id}/image`) : youtubeThumbnail(item.showcase_url);
+  if (kind === 'levels') return <article className="created-level-card">
+    <img className="created-level-image" src={image} alt={item.name} loading="lazy"/>
+    <div className="created-level-content"><div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
+      <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{item.name}</button>
+      <p className="level-card-difficulty">{t.difficultyTop} {item.difficulty_estimate}</p>
+      <p>{t.applicationCount}: <strong>{item.application_count}</strong></p>
+      {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
+      <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button><a className="button button-outline" href={item.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a></div>
+    </div>
+  </article>;
+
+  return <article className="verification-entry">
+    <img className="verification-entry-image" src={image} alt={item.name} loading="lazy"/>
+    <div className="verification-entry-main"><div className="verification-entry-meta"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
+      <button className="verification-entry-title" type="button" onClick={onOpen}>{item.name}</button>
+      <p>{t.createdBy} {item.creator_display_name || item.creator_username} · {t.difficultyTop} {item.difficulty_estimate}</p>
+      <p>{t.appliedAt}: {new Date(item.applied_at).toLocaleDateString(language === 'es' ? 'es-AR' : 'en-US')}</p>
+      {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
+      <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button><a className="button button-outline" href={item.showcase_url} target="_blank" rel="noreferrer">{t.showVideo}</a></div>
+    </div>
   </article>;
 }
 
@@ -272,6 +373,7 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(Boolean(user));
   const [error, setError] = useState('');
+  const [openLevelId, setOpenLevelId] = useState(null);
   const endpoint = kind === 'levels' ? '/levels/mine' : '/levels/applications/mine';
   useEffect(() => {
     let active = true;
@@ -281,17 +383,19 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
     else setLoading(false);
     return () => { active = false; };
   }, [user, endpoint, kind, language]);
-  const title = kind === 'levels' ? t.myLevels : t.myVerifications;
+  const title = kind === 'levels' ? t.createdLevels : t.accountVerifications;
   return <main className="levels-page"><div className="levels-content">
     <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{title}</h1><p>{kind === 'levels' ? t.myLevelsIntro : t.myVerificationsIntro}</p></header>
     <nav className="activity-tabs" aria-label={t.myActivity}>
-      <Link className={kind === 'levels' ? 'active' : ''} to="/my-levels">{t.myLevels}</Link>
-      <Link className={kind === 'applications' ? 'active' : ''} to="/my-verifications">{t.myVerifications}</Link>
+      <Link to="/levels">{t.levels}</Link>
+      <Link className={kind === 'levels' ? 'active' : ''} to="/my-levels">{t.createdLevels}</Link>
+      <Link className={kind === 'applications' ? 'active' : ''} to="/my-verifications">{t.accountVerifications}</Link>
     </nav>
     {!user ? <section className="levels-login-card"><p>{t.signInToViewActivity}</p><button className="button button-primary" type="button" onClick={onRequireLogin}>{t.login}</button></section>
       : loading ? <p className="levels-message">{t.loadingLevels}</p>
         : error ? <p className="levels-message level-error">{error}</p>
           : items.length === 0 ? <p className="levels-message">{kind === 'levels' ? t.emptyMyLevels : t.emptyMyVerifications}</p>
-            : <section className="levels-grid">{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language}/>)}</section>}
+            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(item.id)}/>)}</section>}
+    {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </div></main>;
 }
