@@ -111,7 +111,6 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
   const minimumLevels = form.game_mode === 'PLATFORMER' ? platformer : classic;
   return <main className="levels-page">
     <div className="levels-content">
-      <Link className="levels-back" to="/">{t.backHome}</Link>
       {create ? <>
         <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{t.createLevelTitle}</h1><p>{t.createLevelIntro}</p></header>
         {sessionLoading ? <p className="levels-message">{t.loading}</p> : !user ? <section className="levels-login-card"><p>{t.signInToPublish}</p><button className="button button-primary" type="button" onClick={onRequireLogin}>{t.login}</button></section> :
@@ -147,9 +146,10 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
         </header>
         {notice && <p className="level-success" role="status">{notice}</p>}
         {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : levels.length === 0 ? <p className="levels-message">{t.emptyLevels}</p> :
-          <section className="levels-grid catalog-levels-grid">{levels.map((level) => <div className="level-list-item" key={level.id}><LevelCard level={level} language={language} onOpen={() => setOpenLevelId(openLevelId === level.id ? null : level.id)}/>{openLevelId === level.id && <LevelDetailsView id={level.id} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}</div>)}</section>}
+          <section className="levels-grid catalog-levels-grid">{levels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section>}
       </>}
     </div>
+    {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </main>;
 }
 
@@ -274,7 +274,7 @@ function LevelChat({ levelId, language, user }) {
     <header className="level-chat-heading"><div><h2>{t.levelChat}</h2><p>{t.levelChatAudience}</p><div className="chat-participants" aria-label={t.chatParticipants}>{participants.map((participant) => <Link className="chat-participant" key={participant.id} to={`/user/${encodeURIComponent(participant.username)}`}>
       {participant.avatar_url ? <img src={participant.avatar_url} alt=""/> : <span>{(participant.display_name || participant.username).slice(0, 1).toUpperCase()}</span>}
       <span>{participant.display_name || participant.username}<small>{participant.participant_role === 'CREATOR' ? t.levelCreator : t.verifierRole}</small></span>
-    </Link>)}</div></div><span>{t.chatAutoRefresh}</span></header>
+    </Link>)}</div></div></header>
     <div className="level-chat-messages" aria-live="polite">
       {messages.length === 0 ? <p className="level-chat-empty">{t.chatEmpty}</p> : messages.map((item) => {
         const ownMessage = String(item.sender_id) === String(user.id);
@@ -318,7 +318,6 @@ export function LevelChatPage({ language, user }) {
   const { id } = useParams();
   const t = copy[language];
   return <main className="levels-page"><div className="levels-content">
-    <Link className="levels-back" to={`/levels/${encodeURIComponent(id)}`}>{t.backToLevel}</Link>
     <LevelChat levelId={id} language={language} user={user}/>
   </div></main>;
 }
@@ -354,7 +353,7 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
   return <div className="levels-content level-details-content">
     {onClose && <button className="level-details-close" type="button" onClick={onClose} aria-label={t.closeLevelDetails}>×</button>}
     {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : level && <article className="level-detail-card">
-      <iframe className="level-detail-video" src={youtubeEmbed(level.showcase_url)} title={`${level.name} YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
+      <iframe className="level-detail-video" src={youtubeEmbed(level.showcase_url)} title={`${level.name} YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
       <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span></div>
       <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop} {level.difficulty_estimate}</p>
       <p>{t.createdBy} {level.creator_display_name || level.creator_username}</p>
@@ -372,6 +371,19 @@ export function LevelDetailsPage({ language, user, onRequireLogin }) {
   const { id } = useParams();
   const navigate = useNavigate();
   return <main className="levels-page"><LevelDetailsView id={id} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => navigate('/levels')}/></main>;
+}
+
+function LevelDetailsModal({ levelId, language, user, onRequireLogin, onClose }) {
+  useEffect(() => {
+    function closeOnEscape(event) { if (event.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
+  return <div className="level-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="level-modal" role="dialog" aria-modal="true" aria-label={copy[language].levelDetails}>
+      <LevelDetailsView id={levelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={onClose}/>
+    </section>
+  </div>;
 }
 
 function ActivityCard({ item, kind, language, onOpen }) {
@@ -422,15 +434,11 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
   const title = kind === 'levels' ? t.createdLevels : t.accountVerifications;
   return <main className="levels-page"><div className="levels-content">
     <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{title}</h1><p>{kind === 'levels' ? t.myLevelsIntro : t.myVerificationsIntro}</p></header>
-    <nav className="activity-tabs" aria-label={t.myActivity}>
-      <Link to="/levels">{t.levels}</Link>
-      <Link className={kind === 'levels' ? 'active' : ''} to="/my-levels">{t.createdLevels}</Link>
-      <Link className={kind === 'applications' ? 'active' : ''} to="/my-verifications">{t.accountVerifications}</Link>
-    </nav>
     {!user ? <section className="levels-login-card"><p>{t.signInToViewActivity}</p><button className="button button-primary" type="button" onClick={onRequireLogin}>{t.login}</button></section>
       : loading ? <p className="levels-message">{t.loadingLevels}</p>
         : error ? <p className="levels-message level-error">{error}</p>
           : items.length === 0 ? <p className="levels-message">{kind === 'levels' ? t.emptyMyLevels : t.emptyMyVerifications}</p>
-            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <div className="activity-level-item" key={kind === 'levels' ? item.id : item.application_id}><ActivityCard item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(openLevelId === item.id ? null : item.id)}/>{openLevelId === item.id && <LevelDetailsView id={item.id} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}</div>)}</section>}
+            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(item.id)}/>)}</section>}
+    {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </div></main>;
 }

@@ -27,10 +27,12 @@ export const copy = {
 
 Object.assign(copy.es, {
   classicMode: 'Clásico',
+  difficultyTop: 'Top ~',
   levelImageHelp: 'Elegí una imagen; se recorta al centro a 16:9 y se guarda en JPG de alta calidad (1920×1080, hasta 4 MB). Si no cargás una, usamos la miniatura del video.',
   levelImageTooLarge: 'La imagen optimizada supera 4 MB.'
 });
 Object.assign(copy.en, {
+  difficultyTop: 'Top ~',
   levelImageHelp: 'Choose an image; it will be center-cropped to 16:9 and saved as a high-quality JPG (1920×1080, up to 4 MB). If omitted, the video thumbnail will be used.',
   levelImageTooLarge: 'The optimized image exceeds 4 MB.'
 });

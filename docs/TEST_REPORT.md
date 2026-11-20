@@ -32,6 +32,13 @@ Comprobaciones de T-13 (chat multimedia, detalle integrado y calidad de imágene
 | Migración `009_chat_attachments.sql` en PostgreSQL local | **PASS** | Ejecutada correctamente. En Render también debe aplicarse antes de habilitar adjuntos. |
 | Endpoint de chat local sin token | **PASS** — HTTP 401 | Confirma que la ruta continúa requiriendo autenticación. |
 
+Comprobaciones de T-14 (imagen cross-origin, modal y navegación):
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| Imagen del nivel `asd` en `/levels` | **PASS** — natural size 1600×900 | API responde HTTP 200 (`image/webp`, 90 KB) con `Cross-Origin-Resource-Policy: cross-origin`; el navegador la decodifica entre puertos. |
+| Modal de detalles en `/levels` | **PASS** | Se verificó superpuesto, mantiene la ruta y su panel tiene `overflow: visible`/`max-height: none`, sin scroll interno. |
+
 Comprobaciones ejecutadas después de los últimos cambios de aplicación.
 
 ## Cobertura actual y límites

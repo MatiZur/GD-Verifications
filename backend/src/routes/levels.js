@@ -104,7 +104,10 @@ router.get('/:id/image', async (req, res, next) => {
       [req.params.id]
     );
     if (!result.rows[0]?.image_data) return res.status(404).end();
-    res.type(result.rows[0].image_mime_type).set('Cache-Control', 'public, max-age=86400').send(result.rows[0].image_data);
+    res.type(result.rows[0].image_mime_type)
+      .set('Cross-Origin-Resource-Policy', 'cross-origin')
+      .set('Cache-Control', 'public, max-age=86400')
+      .send(result.rows[0].image_data);
   } catch (error) { next(error); }
 });
 

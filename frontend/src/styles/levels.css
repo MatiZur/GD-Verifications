@@ -135,9 +135,6 @@
 .level-card-requirement strong { color: #d7caff; }
 .level-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .level-card-actions .button { font-size: 12px; padding: 9px 11px; }
-.activity-tabs { display: flex; gap: 8px; margin: 0 0 24px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,.09); }
-.activity-tabs a { padding: 10px 14px; border-radius: 9px; color: #aaa6bb; font-weight: 700; font-size: 13px; }
-.activity-tabs a:hover, .activity-tabs a.active { background: rgba(167,139,250,.14); color: #d7caff; }
 .activity-card > p { color: #a5a2b8; font-size: 13px; line-height: 1.55; }
 .activity-description { white-space: pre-wrap; overflow-wrap: anywhere; }
 .created-levels-list { display: grid; gap: 16px; }
@@ -157,12 +154,14 @@
 .level-list-item, .activity-level-item { min-width: 0; }
 .level-details-content { position: relative; width: 100%; padding: 18px 0 4px; grid-column: 1 / -1; }
 .level-detail-card { padding: 8px 0 0; border: 0; border-radius: 0; background: transparent; }
+.level-modal-backdrop { position: fixed; inset: 0; z-index: 90; display: block; padding: 24px 0; background: rgba(5,5,12,.82); backdrop-filter: blur(8px); }
+.level-modal { width: min(calc(100% - 32px), 940px); margin: 0 auto; border: 0; border-radius: 16px; background: #101018; box-shadow: 0 24px 70px rgba(0,0,0,.5); }
 .level-details-close { position: sticky; top: 0; z-index: 2; display: block; width: 38px; height: 38px; margin: 0 0 -38px auto; border: 1px solid var(--line); border-radius: 50%; background: rgba(17,17,26,.9); color: #fff; font-size: 25px; }
-.level-chat { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+.level-chat { width: 100%; max-width: 1120px; margin: 0 auto; padding-top: 8px; }
 .level-chat-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .level-chat-heading h2 { margin: 0 0 4px; font: 700 20px 'Space Grotesk'; }
-.level-chat-heading p, .level-chat-heading > span { margin: 0; color: var(--muted); font-size: 12px; }
-.level-chat-messages { display: grid; align-content: start; gap: 12px; max-height: 350px; overflow: auto; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: rgba(10,10,16,.7); }
+.level-chat-heading p { margin: 0; color: var(--muted); font-size: 12px; }
+.level-chat-messages { display: grid; align-content: start; gap: 14px; min-height: 420px; max-height: 600px; overflow: auto; padding: 18px; border: 1px solid var(--line); border-radius: 11px; background: rgba(10,10,16,.7); }
 .level-chat-empty { margin: 0; color: var(--muted); text-align: center; font-size: 13px; }
 .chat-message { display: flex; align-items: flex-start; gap: 9px; }
 .chat-avatar { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; object-fit: cover; background: #29253a; }
@@ -208,6 +207,8 @@
   .created-level-image { min-height: auto; aspect-ratio: 16 / 9; }
   .verification-entry { grid-template-columns: 105px minmax(0, 1fr); gap: 10px; padding: 9px; }
   .verification-entry-image { width: 105px; height: 70px; }
+  .level-modal-backdrop { padding: 10px 0; }
+  .level-modal { width: calc(100% - 20px); }
   .level-details-content { padding: 14px 0; }
   .level-detail-card { padding: 0; }
   .applicant-heading { flex-direction: column; }
