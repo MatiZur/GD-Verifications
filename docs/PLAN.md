@@ -33,6 +33,7 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 - [x] **T-27 — Catálogo compacto, filtros por categoría y diseño adaptable.** Limitar cada categoría a seis tarjetas, enlazar “Ver todos” con sus filtros, abrir el envío de verificación en modal, agregar acceso para publicar en Niveles creados y mejorar la adaptación responsive. Confirmación: `Feat: Catálogo compacto y diseño adaptable`.
 - [x] **T-28 — Postulaciones durante una verificación en progreso.** Permitir nuevas postulaciones mientras el creador no las cierre, tanto en niveles disponibles como en progreso; las normales quedan pendientes y `Open verification` las acepta automáticamente. Confirmación: `Fix: Postulaciones abiertas durante la verificación`.
 - [x] **T-29 — Normalización de la apertura de postulaciones.** Aceptar el campo `applications_open` que devuelve PostgreSQL en la comprobación transaccional y cubrir el contrato con una prueba de regresión. Confirmación: `Fix: Lectura correcta de postulaciones abiertas`.
+- [x] **T-30 — Tarjetas compactas de verificaciones recientes.** Mostrar las cinco tarjetas de la landing en una fila en escritorio y adaptar la grilla a pantallas pequeñas. Confirmación: `Style: Cinco verificaciones recientes en una fila`.
 
 ## Criterio para marcar una tarea como hecha
 
