@@ -54,6 +54,7 @@ API health check: <http://localhost:3000/api/v1/health>
 - `GET /api/v1/levels`: catálogo público de niveles aprobados, en progreso o verificados. Los niveles nuevos quedan pendientes hasta que un admin o el owner los revise.
 - `GET /api/v1/levels/:id` y `POST /api/v1/levels` (Bearer token): consulta y publicación de niveles con modalidad, Top estimado, video de YouTube y requisito AREDL mínimo opcional.
 - `POST /api/v1/levels/:id/applications` (Bearer token): postulación como verificador. El backend valida que el hardest del perfil cumpla el mínimo y corresponda a la modalidad.
+- `PATCH /api/v1/levels/:id/applications/:applicationId/reject` (Bearer token): el creador rechaza una postulación pendiente; la fila se conserva y la restricción única impide que ese jugador vuelva a postularse a ese nivel.
 - `/api/v1/levels/:id/chat` y `/messages`: chat y adjuntos limitados al creador y verificadores aceptados; las cuentas admin y owner no tienen acceso.
 - `POST /api/v1/levels/:id/verification-submissions`: entrega de ID pública, video de YouTube y verificador aceptado; admin/owner resuelven la cola en `/api/v1/admin/verification-submissions/pending`.
 - `POST /api/v1/levels/:id/chat-reports`: reporte de otro participante; un caso abierto habilita lectura administrativa del chat. `/api/v1/admin/chat-reports` permite descartarlo o suspender al usuario.
@@ -61,7 +62,7 @@ API health check: <http://localhost:3000/api/v1/health>
 - `/api/v1/admin/users` y `/api/v1/admin/levels/pending`: administración de jugadores y niveles pendientes, restringida a admins y owner. `PATCH /api/v1/admin/levels/:id/review` aprueba o rechaza con auditoría; `PATCH /api/v1/admin/users/:id/promote` es exclusivo del owner.
 - `GET /api/v1/users/aredl/extremes`: listas AREDL que alimentan los selectores de hardest.
 
-La aceptación múltiple de postulaciones está implementada; todavía no existe una acción para que el creador rechace individualmente una postulación pendiente. Sí están implementados la entrega de pruebas por el creador en nombre de un verificador aceptado, la revisión administrativa, Open verification y los reportes de chat con suspensiones. Ver [SPEC](./docs/SPEC.md) y [PLAN](./docs/PLAN.md) para el alcance detallado.
+El creador puede aceptar varias postulaciones o rechazar una pendiente; una postulación rechazada permanece registrada y bloquea nuevos intentos del mismo jugador en ese nivel. También están implementados la entrega de pruebas por el creador en nombre de un verificador aceptado, la revisión administrativa, Open verification y los reportes de chat con suspensiones. Ver [SPEC](./docs/SPEC.md) y [PLAN](./docs/PLAN.md) para el alcance detallado.
 
 ## Pruebas
 
@@ -77,7 +78,7 @@ Desde `frontend/`:
 npm run build
 ```
 
-La suite actual contiene 38 tests automatizados y el frontend compila para producción. No reemplazan un recorrido E2E integral con cuentas reales. Ver [informe de pruebas](./docs/TEST_REPORT.md) para resultados locales, comprobaciones públicas y límites.
+La suite actual contiene 42 tests automatizados y el frontend compila para producción. No reemplazan un recorrido E2E integral con cuentas reales. Ver [informe de pruebas](./docs/TEST_REPORT.md) para resultados locales, comprobaciones públicas y límites.
 
 ## Despliegue
 

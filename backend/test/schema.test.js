@@ -35,3 +35,7 @@ test('the schema is wrapped in a transaction and creates indexes idempotently', 
   assert.match(schema, /public_level_id VARCHAR\(30\)/);
   assert.match(schema, /banned_at TIMESTAMPTZ/);
 });
+
+test('an application is unique per player and level, including after rejection', () => {
+  assert.match(schema, /UNIQUE \(level_id, verifier_id\)/);
+});

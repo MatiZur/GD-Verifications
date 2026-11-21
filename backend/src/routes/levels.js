@@ -4,7 +4,7 @@ import { pool } from '../config/database.js';
 import { authenticateToken, optionalToken, requireActiveUser, requireRole } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
 import { applicationsOpenAfterVerifierAcceptance, canCreatorCloseApplications, canCreatorDeleteCancelledLevel, canCreatorRemoveAcceptedVerifier, canCreatorRestoreLevel, canCreatorWithdrawLevel, canReceiveApplication, getApplicationStatusForLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
-import { validateApplicationSelection } from '../services/applicationRules.js';
+import { canCreatorRejectApplication, validateApplicationSelection } from '../services/applicationRules.js';
 import { canAccessLevelChat, validateChatAttachment, validateChatMessage } from '../services/chatRules.js';
 import { validateVerificationSubmission } from '../services/verificationRules.js';
 import { validateChatReport } from '../services/chatReportRules.js';
@@ -397,6 +397,47 @@ router.patch('/:id/applications', authenticateToken, requireActiveUser, async (r
     );
     await client.query('COMMIT');
     res.json({ accepted: accepted.rows });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally { client?.release(); }
+});
+
+router.patch('/:id/applications/:applicationId/reject', authenticateToken, requireActiveUser, async (req, res, next) => {
+  let client;
+  try {
+    if (!isLevelId(req.params.id) || !isLevelId(req.params.applicationId)) return res.status(404).json({ error: 'Postulación no encontrada' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const levelResult = await client.query('SELECT creator_id, status FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const level = levelResult.rows[0];
+    if (!level) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Nivel no encontrado' });
+    }
+    if (String(level.creator_id) !== String(req.user.id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Solo el creador puede rechazar postulaciones' });
+    }
+    const applicationResult = await client.query(
+      'SELECT id, verifier_id, status FROM applications WHERE id = $1 AND level_id = $2 FOR UPDATE',
+      [req.params.applicationId, req.params.id]
+    );
+    const application = applicationResult.rows[0];
+    if (!application) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Postulación no encontrada' });
+    }
+    if (!canCreatorRejectApplication({ creatorId: level.creator_id, userId: req.user.id, levelStatus: level.status, applicationStatus: application.status })) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Solo se pueden rechazar postulaciones pendientes de niveles activos' });
+    }
+    const rejected = await client.query(
+      "UPDATE applications SET status = 'REJECTED', updated_at = NOW() WHERE id = $1 RETURNING id, status, updated_at",
+      [application.id]
+    );
+    await client.query('COMMIT');
+    res.json({ application: rejected.rows[0] });
   } catch (error) {
     if (client) await client.query('ROLLBACK').catch(() => {});
     next(error);

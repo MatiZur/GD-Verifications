@@ -1,5 +1,11 @@
 import { isLevelId } from './levelRules.js';
 
+export function canCreatorRejectApplication({ creatorId, userId, levelStatus, applicationStatus }) {
+  return String(creatorId) === String(userId)
+    && ['AVAILABLE', 'IN_PROGRESS'].includes(levelStatus)
+    && applicationStatus === 'PENDING';
+}
+
 export function validateApplicationSelection(applicationIds) {
   if (!Array.isArray(applicationIds) || applicationIds.length < 1 || applicationIds.length > 100) {
     return 'Seleccioná entre 1 y 100 postulaciones';

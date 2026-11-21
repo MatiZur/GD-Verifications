@@ -122,6 +122,7 @@ body {
 .applicant-status-accepted { background: rgba(49,155,104,.15); color: #a5f0c5; }
 .applicant-status-rejected, .applicant-status-withdrawn { background: rgba(255,91,112,.12); color: #ff9eac; }
 .applicant-remove { padding: 7px 9px; font-size: 11px; }
+.applicant-reject { padding: 7px 9px; font-size: 11px; color: var(--danger); border-color: rgba(255, 95, 109, .45); }
 .applicant-actions { display: flex; align-items: center; justify-content: flex-end; gap: 13px; margin-top: 15px; color: var(--muted); font-size: 13px; }
 .site-footer {
   width: min(100%, 1080px); margin: auto auto 0; padding: 23px 24px;

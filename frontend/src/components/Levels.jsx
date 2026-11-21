@@ -268,6 +268,7 @@ function ApplicantManagement({ level, language, onLevelUpdate }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [removingId, setRemovingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -295,6 +296,17 @@ function ApplicantManagement({ level, language, onLevelUpdate }) {
       setSelected([]);
     } catch (acceptError) { setError(translateError(acceptError.message, language)); }
     finally { setSaving(false); }
+  }
+  async function rejectApplication(application) {
+    if (!window.confirm(t.rejectApplicationConfirm)) return;
+    setRejectingId(String(application.id)); setError(''); setNotice('');
+    try {
+      await apiRequest(`/levels/${encodeURIComponent(level.id)}/applications/${encodeURIComponent(application.id)}/reject`, { method: 'PATCH' });
+      setApplications((current) => current.map((item) => String(item.id) === String(application.id) ? { ...item, status: 'REJECTED' } : item));
+      setSelected((current) => current.filter((id) => id !== String(application.id)));
+      setNotice(t.applicationRejected);
+    } catch (rejectError) { setError(translateError(rejectError.message, language)); }
+    finally { setRejectingId(null); }
   }
   async function removeVerifier(application) {
     if (!window.confirm(t.removeVerifierConfirm)) return;
@@ -324,6 +336,7 @@ function ApplicantManagement({ level, language, onLevelUpdate }) {
               <p>{application.matching_hardest_name ? `${t.applicantHardest}: ${application.matching_hardest_name}` : t.noHardestYet}</p>
             </div>
             <span className={`applicant-status applicant-status-${application.status.toLowerCase()}`}>{statusText}</span>
+            {canAccept && application.status === 'PENDING' && <button className="button button-outline applicant-reject" type="button" onClick={() => rejectApplication(application)} disabled={Boolean(rejectingId) || saving}>{rejectingId === String(application.id) ? t.rejectingApplication : t.rejectApplication}</button>}
             {level.status === 'IN_PROGRESS' && application.status === 'ACCEPTED' && <button className="button button-outline applicant-remove" type="button" onClick={() => removeVerifier(application)} disabled={Boolean(removingId)}>{removingId === String(application.id) ? t.savingLevelAction : t.removeVerifier}</button>}
           </article>;
         })}</div>}
