@@ -86,6 +86,11 @@ test('a verified level does not close applications on a different available leve
   assert.equal(canReceiveApplication({ status: 'AVAILABLE', applicationsOpen: true, openVerification: false }), true);
 });
 
+test('application gate accepts the snake_case row returned by PostgreSQL', () => {
+  assert.equal(canReceiveApplication({ status: 'AVAILABLE', applications_open: true }), true);
+  assert.equal(canReceiveApplication({ status: 'AVAILABLE', applications_open: false }), false);
+});
+
 test('only the creator can restore a cancelled level without accepted verifiers', () => {
   const valid = { creatorId: '10', userId: 10, status: 'CANCELLED', acceptedVerifierCount: 0 };
   assert.equal(canCreatorRestoreLevel(valid), true);

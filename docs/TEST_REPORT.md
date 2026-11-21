@@ -1,12 +1,12 @@
 # Informe de pruebas
 
-Última actualización: **2026-11-21**. Última ejecución local: suite backend (43 pruebas) y build frontend después del ajuste del catálogo y postulaciones durante verificaciones en progreso. Este informe separa las pruebas locales repetibles de las comprobaciones de disponibilidad pública; un smoke test no demuestra que todos los flujos estén correctos.
+Última actualización: **2026-11-21**. Última ejecución local: suite backend (44 pruebas) y build frontend después de corregir la segunda validación transaccional de postulaciones. Este informe separa las pruebas locales repetibles de las comprobaciones de disponibilidad pública; un smoke test no demuestra que todos los flujos estén correctos.
 
 ## Comprobaciones locales
 
 | Comprobación | Resultado | Alcance |
 | --- | --- | --- |
-| `cd backend && npm test` | **PASS** — 43 tests, 0 fallos | Suite determinista de autenticación, perfiles, niveles, postulaciones (incluida la recepción durante `IN_PROGRESS`), chat, moderación, suspensiones, entregas y esquema. En niveles comunes, las postulaciones nuevas siguen pendientes; `Open verification` las acepta automáticamente. |
+| `cd backend && npm test` | **PASS** — 44 tests, 0 fallos | Suite determinista de autenticación, perfiles, niveles, postulaciones (incluida la recepción durante `IN_PROGRESS` y la lectura de `applications_open` de PostgreSQL), chat, moderación, suspensiones, entregas y esquema. |
 | `cd frontend && npm run build` | **PASS** | Vite generó correctamente la compilación de producción. |
 | Pruebas de `backend/schema.sql` | **PASS** | Verifican tablas/campos esperados, seed inicial de owner, transacción e idempotencia de índices. La ejecución doble en PostgreSQL WASM en memoria quedó registrada anteriormente. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios de esta entrega. |
