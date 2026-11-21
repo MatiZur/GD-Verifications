@@ -65,6 +65,15 @@ Comprobaciones de T-18:
 | `cd frontend && npm run build` | **PASS** | Vite compiló filtros, acción de verificación y bloque de landing. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
 
+Comprobaciones de T-19:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 18 tests, 0 fallos | Suite de reglas del backend completa. |
+| `cd frontend && npm run build` | **PASS** | Vite compiló las secciones permanentes, los filtros y la acción de verificación en Niveles creados. |
+| Catálogo `/levels` en navegador | **PASS** | Las seis categorías aparecen apiladas, la lista completa muestra Ambos / más reciente / sin verificar por defecto y Verificados recientemente queda al final. |
+| `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
+
 Comprobaciones de T-17:
 
 | Comprobación | Resultado | Alcance |

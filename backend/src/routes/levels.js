@@ -15,7 +15,7 @@ const levelFields = `
   l.minimum_hardest_aredl_id, l.minimum_hardest_aredl_name,
   (l.image_data IS NOT NULL) AS has_image,
   (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count,
-  l.created_at, u.username AS creator_username, u.display_name AS creator_display_name
+  l.created_at, l.updated_at, u.username AS creator_username, u.display_name AS creator_display_name
 `;
 
 router.get('/', async (_req, res, next) => {
@@ -23,7 +23,7 @@ router.get('/', async (_req, res, next) => {
     const result = await pool.query(
       `SELECT ${levelFields}
        FROM levels l JOIN users u ON u.id = l.creator_id
-       WHERE l.status IN ('AVAILABLE', 'IN_PROGRESS')
+       WHERE l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')
        ORDER BY l.created_at DESC`
     );
     res.json({ levels: result.rows });
@@ -114,7 +114,7 @@ router.get('/:id/image', async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).end();
     const result = await pool.query(
-      "SELECT image_data, image_mime_type FROM levels WHERE id = $1 AND status IN ('AVAILABLE', 'IN_PROGRESS', 'VERIFIED')",
+      "SELECT image_data, image_mime_type FROM levels WHERE id = $1 AND status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')",
       [req.params.id]
     );
     if (!result.rows[0]?.image_data) return res.status(404).end();
@@ -131,7 +131,7 @@ router.get('/:id', async (req, res, next) => {
     const result = await pool.query(
       `SELECT ${levelFields}
        FROM levels l JOIN users u ON u.id = l.creator_id
-       WHERE l.id = $1 AND l.status IN ('AVAILABLE', 'IN_PROGRESS', 'VERIFIED')`,
+       WHERE l.id = $1 AND l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')`,
       [req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Nivel no encontrado' });

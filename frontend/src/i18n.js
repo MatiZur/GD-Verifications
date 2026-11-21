@@ -27,6 +27,7 @@ export const copy = {
 
 Object.assign(copy.es, {
   levelLists: 'Listas de niveles', recentLevels: 'Recientes', oldestLevels: 'Viejos', hardestLevels: 'Más difíciles', easiestLevels: 'Más fáciles',
+  emptyCategory: 'No hay niveles en esta lista todavía.', allLevels: 'Todos los niveles', allLevelsIntro: 'Explorá el historial completo de niveles publicados.', modeFilter: 'Modo', bothModes: 'Ambos', difficultyFilter: 'Dificultad (Top)', topFrom: 'Desde', topTo: 'Hasta', ageFilter: 'Antigüedad', newestFirst: 'Más reciente a más viejo', oldestFirst: 'Más viejo a más reciente', verificationFilter: 'Estado de verificación', unverifiedOnly: 'Sin verificar', verifiedOnly: 'Verificados', allStatuses: 'Todos', noFilterMatches: 'No hay niveles que coincidan con estos filtros.', recentlyVerified: 'Verificados recientemente',
   markVerified: 'Marcar como verificado', markingVerified: 'Guardando...', recentVerificationsTitle: 'Últimas verificaciones', recentVerificationsIntro: 'Los cinco niveles verificados más recientemente por la comunidad.', verifiedLevelsEyebrow: 'VERIFICACIONES COMPLETADAS', emptyVerifiedLevels: 'Todavía no hay niveles verificados.',
   classicMode: 'Clásico',
   difficultyTop: 'Top ~',
@@ -35,6 +36,7 @@ Object.assign(copy.es, {
 });
 Object.assign(copy.en, {
   levelLists: 'Level lists', recentLevels: 'Recent', oldestLevels: 'Oldest', hardestLevels: 'Hardest', easiestLevels: 'Easiest',
+  emptyCategory: 'There are no levels in this list yet.', allLevels: 'All levels', allLevelsIntro: 'Browse the complete history of published levels.', modeFilter: 'Mode', bothModes: 'Both', difficultyFilter: 'Difficulty (Top)', topFrom: 'From', topTo: 'To', ageFilter: 'Age', newestFirst: 'Newest to oldest', oldestFirst: 'Oldest to newest', verificationFilter: 'Verification status', unverifiedOnly: 'Unverified', verifiedOnly: 'Verified', allStatuses: 'All', noFilterMatches: 'No levels match these filters.', recentlyVerified: 'Recently verified',
   markVerified: 'Mark as verified', markingVerified: 'Saving...', recentVerificationsTitle: 'Recent verifications', recentVerificationsIntro: 'The five levels most recently verified by the community.', verifiedLevelsEyebrow: 'COMPLETED VERIFICATIONS', emptyVerifiedLevels: 'There are no verified levels yet.',
   difficultyTop: 'Top ~',
   levelImageHelp: 'Choose an image; it will be center-cropped to 16:9 and saved as a high-quality JPG (1920×1080, up to 4 MB). If omitted, the video thumbnail will be used.',
