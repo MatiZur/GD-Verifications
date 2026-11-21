@@ -36,6 +36,7 @@ Plataforma comunitaria propia para Geometry Dash: perfiles de jugadores y, como 
    psql -d gd_verifications -f backend/migrations/007_multiple_accepted_applications.sql
    psql -d gd_verifications -f backend/migrations/008_level_chat.sql
    psql -d gd_verifications -f backend/migrations/009_chat_attachments.sql
+   psql -d gd_verifications -f backend/migrations/010_level_applications_open.sql
    ```
 
 2. Copiar `backend/.env.example` a `backend/.env`, completar `DATABASE_URL` y reemplazar `JWT_SECRET` con un secreto aleatorio privado. Luego:

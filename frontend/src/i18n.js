@@ -28,7 +28,8 @@ export const copy = {
 Object.assign(copy.es, {
   levelLists: 'Listas de niveles', recentLevels: 'Recientes', oldestLevels: 'Viejos', hardestLevels: 'Más difíciles', easiestLevels: 'Más fáciles',
   emptyCategory: 'No hay niveles en esta lista todavía.', allLevels: 'Todos los niveles', allLevelsIntro: 'Explorá el historial completo de niveles publicados.', modeFilter: 'Modo', bothModes: 'Ambos', difficultyFilter: 'Dificultad (Top)', topFrom: 'Desde', topTo: 'Hasta', ageFilter: 'Antigüedad', newestFirst: 'Más reciente a más viejo', oldestFirst: 'Más viejo a más reciente', verificationFilter: 'Estado de verificación', unverifiedOnly: 'Sin verificar', verifiedOnly: 'Verificados', allStatuses: 'Todos', noFilterMatches: 'No hay niveles que coincidan con estos filtros.', recentlyVerified: 'Verificados recientemente',
-  verifiedBy: 'Verificado por', levelCategories: 'Categorías de niveles',
+  verifiedBy: 'Verificado por', levelCategories: 'Categorías de niveles', beingVerified: 'Siendo verificados',
+  applicationsClosed: 'Postulaciones cerradas', closeApplications: 'Cerrar postulaciones', closeApplicationsConfirm: '¿Seguro que querés cerrar las postulaciones? No se podrán recibir nuevas solicitudes.', withdrawLevel: 'Retirar nivel', savingLevelAction: 'Guardando...', withdrawConfirm: '¿Seguro que querés retirar este nivel de la lista? Esta acción no se puede deshacer.',
   markVerified: 'Marcar como verificado', markingVerified: 'Guardando...', recentVerificationsTitle: 'Últimas verificaciones', recentVerificationsIntro: 'Los cinco niveles verificados más recientemente por la comunidad.', verifiedLevelsEyebrow: 'VERIFICACIONES COMPLETADAS', emptyVerifiedLevels: 'Todavía no hay niveles verificados.',
   classicMode: 'Clásico',
   difficultyTop: 'Top ~',
@@ -38,7 +39,8 @@ Object.assign(copy.es, {
 Object.assign(copy.en, {
   levelLists: 'Level lists', recentLevels: 'Recent', oldestLevels: 'Oldest', hardestLevels: 'Hardest', easiestLevels: 'Easiest',
   emptyCategory: 'There are no levels in this list yet.', allLevels: 'All levels', allLevelsIntro: 'Browse the complete history of published levels.', modeFilter: 'Mode', bothModes: 'Both', difficultyFilter: 'Difficulty (Top)', topFrom: 'From', topTo: 'To', ageFilter: 'Age', newestFirst: 'Newest to oldest', oldestFirst: 'Oldest to newest', verificationFilter: 'Verification status', unverifiedOnly: 'Unverified', verifiedOnly: 'Verified', allStatuses: 'All', noFilterMatches: 'No levels match these filters.', recentlyVerified: 'Recently verified',
-  verifiedBy: 'Verified by', levelCategories: 'Level categories',
+  verifiedBy: 'Verified by', levelCategories: 'Level categories', beingVerified: 'Being verified',
+  applicationsClosed: 'Applications closed', closeApplications: 'Close applications', closeApplicationsConfirm: 'Are you sure you want to close applications? No new applications can be received.', withdrawLevel: 'Withdraw level', savingLevelAction: 'Saving...', withdrawConfirm: 'Are you sure you want to withdraw this level from the list? This action cannot be undone.',
   markVerified: 'Mark as verified', markingVerified: 'Saving...', recentVerificationsTitle: 'Recent verifications', recentVerificationsIntro: 'The five levels most recently verified by the community.', verifiedLevelsEyebrow: 'COMPLETED VERIFICATIONS', emptyVerifiedLevels: 'There are no verified levels yet.',
   difficultyTop: 'Top ~',
   levelImageHelp: 'Choose an image; it will be center-cropped to 16:9 and saved as a high-quality JPG (1920×1080, up to 4 MB). If omitted, the video thumbnail will be used.',
@@ -47,6 +49,10 @@ Object.assign(copy.en, {
 
 const errors = {
   'Solo el creador puede marcar el nivel como verificado': 'Only the creator can mark this level as verified',
+  'Solo el creador puede cerrar las postulaciones': 'Only the creator can close applications',
+  'No se pueden cerrar las postulaciones para este nivel': 'Applications cannot be closed for this level',
+  'Solo el creador puede retirar este nivel': 'Only the creator can withdraw this level',
+  'Solo se puede retirar un nivel disponible sin verificadores aceptados': 'Only an available level without accepted verifiers can be withdrawn',
   'El nivel debe estar en progreso y tener al menos un verificador aceptado': 'The level must be in progress and have at least one accepted verifier',
   'Adjuntá una imagen JPG, PNG o WebP, o un video MP4 o WebM': 'Attach a JPG, PNG, or WebP image, or an MP4 or WebM video',
   'La imagen adjunta supera 8 MB': 'The attached image exceeds 8 MB',

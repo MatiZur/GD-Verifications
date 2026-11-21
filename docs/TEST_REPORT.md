@@ -85,6 +85,19 @@ Comprobaciones de T-20:
 | Niveles verificados | **PASS** | Se muestra el verificador junto al creador en la tarjeta y en los detalles. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
 
+Comprobaciones de T-21:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 20 tests, 0 fallos | Incluye reglas de permisos para retirar niveles y cerrar postulaciones. |
+| `cd frontend && npm run build` | **PASS** | Vite produjo la compilación de producción. |
+| Migración `010_level_applications_open.sql` en PostgreSQL local | **PASS** | Agrega el estado persistente de postulaciones y cierra automáticamente niveles ya asignados/finalizados. |
+| API local `/api/v1/levels` | **PASS** | Devuelve `applications_open` para niveles y permite que la interfaz refleje el cierre. |
+| Rutas PATCH de cierre y retiro sin token | **PASS** — HTTP 401 en ambas | Ambas acciones requieren autenticación; propiedad y condiciones se validan dentro de transacciones en backend. |
+| Catálogo `/levels` en navegador | **PASS** | “Siendo verificados” aparece antes de “Verificados recientemente”. |
+| Filtro `/levels/all` en navegador | **PASS** | Incluye “Siendo verificados” y mantiene “Sin verificar” como valor inicial. |
+| `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
+
 Comprobaciones de T-17:
 
 | Comprobación | Resultado | Alcance |

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canCreatorMarkLevelVerified, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
+import { canCreatorCloseApplications, canCreatorMarkLevelVerified, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
 
 const body = {
   name: 'Example Demon',
@@ -46,6 +46,23 @@ test('only the creator can verify an in-progress level with accepted verifiers',
   assert.equal(canCreatorMarkLevelVerified({ ...valid, userId: 11 }), false);
   assert.equal(canCreatorMarkLevelVerified({ ...valid, status: 'AVAILABLE' }), false);
   assert.equal(canCreatorMarkLevelVerified({ ...valid, acceptedVerifierCount: 0 }), false);
+});
+
+test('only the creator can withdraw an available level without accepted verifiers', () => {
+  const valid = { creatorId: '10', userId: 10, status: 'AVAILABLE', acceptedVerifierCount: 0 };
+  assert.equal(canCreatorWithdrawLevel(valid), true);
+  assert.equal(canCreatorWithdrawLevel({ ...valid, userId: 11 }), false);
+  assert.equal(canCreatorWithdrawLevel({ ...valid, status: 'IN_PROGRESS' }), false);
+  assert.equal(canCreatorWithdrawLevel({ ...valid, acceptedVerifierCount: 1 }), false);
+});
+
+test('only the creator can close open applications on an available level without accepted verifiers', () => {
+  const valid = { creatorId: '10', userId: 10, status: 'AVAILABLE', applicationsOpen: true, acceptedVerifierCount: 0 };
+  assert.equal(canCreatorCloseApplications(valid), true);
+  assert.equal(canCreatorCloseApplications({ ...valid, userId: 11 }), false);
+  assert.equal(canCreatorCloseApplications({ ...valid, applicationsOpen: false }), false);
+  assert.equal(canCreatorCloseApplications({ ...valid, status: 'IN_PROGRESS' }), false);
+  assert.equal(canCreatorCloseApplications({ ...valid, acceptedVerifierCount: 1 }), false);
 });
 
 test('level IDs must be valid positive PostgreSQL BIGINT values', () => {

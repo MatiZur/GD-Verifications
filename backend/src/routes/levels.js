@@ -3,7 +3,7 @@ import multer from 'multer';
 import { pool } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
-import { canCreatorMarkLevelVerified, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
+import { canCreatorCloseApplications, canCreatorMarkLevelVerified, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
 import { validateApplicationSelection } from '../services/applicationRules.js';
 import { canAccessLevelChat, validateChatAttachment, validateChatMessage } from '../services/chatRules.js';
 
@@ -11,7 +11,7 @@ const router = Router();
 const chatUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 } }).single('attachment');
 const levelFields = `
   l.id, l.creator_id, l.name, l.description, l.gd_level_id, l.difficulty,
-  l.difficulty_estimate, l.game_mode, l.showcase_url, l.status,
+  l.difficulty_estimate, l.game_mode, l.showcase_url, l.status, l.applications_open,
   l.minimum_hardest_aredl_id, l.minimum_hardest_aredl_name,
   (l.image_data IS NOT NULL) AS has_image,
   (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count,
@@ -103,7 +103,7 @@ router.get('/applications/mine', authenticateToken, async (req, res, next) => {
     const result = await pool.query(
       `SELECT a.id AS application_id, a.status AS application_status, a.created_at AS applied_at,
               l.id, l.name, l.description, l.game_mode, l.difficulty_estimate, l.showcase_url,
-              l.status AS level_status, l.minimum_hardest_aredl_name, l.created_at,
+              l.status AS level_status, l.applications_open, l.minimum_hardest_aredl_name, l.created_at,
               (l.image_data IS NOT NULL) AS has_image,
               CASE WHEN l.status = 'VERIFIED' THEN COALESCE((
                 SELECT json_agg(json_build_object('username', verifier.username, 'display_name', verifier.display_name) ORDER BY accepted.updated_at, accepted.id)
@@ -312,7 +312,7 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
        RETURNING id, verifier_id, status, updated_at`,
       [req.params.id, applicationIds]
     );
-    await client.query("UPDATE levels SET status = 'IN_PROGRESS', updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [req.params.id]);
+    await client.query("UPDATE levels SET status = 'IN_PROGRESS', applications_open = FALSE, updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [req.params.id]);
     await client.query('COMMIT');
     res.json({ accepted: accepted.rows });
   } catch (error) {
@@ -358,11 +358,85 @@ router.patch('/:id/verify', authenticateToken, async (req, res, next) => {
   } finally { client?.release(); }
 });
 
+router.patch('/:id/close-applications', authenticateToken, async (req, res, next) => {
+  let client;
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const result = await client.query(
+      `SELECT l.id, l.creator_id, l.status, l.applications_open,
+              (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count
+       FROM levels l WHERE l.id = $1 FOR UPDATE`,
+      [req.params.id]
+    );
+    const level = result.rows[0];
+    if (!level) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Nivel no encontrado' });
+    }
+    if (String(level.creator_id) !== String(req.user.id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Solo el creador puede cerrar las postulaciones' });
+    }
+    if (!canCreatorCloseApplications({ creatorId: level.creator_id, userId: req.user.id, status: level.status, applicationsOpen: level.applications_open, acceptedVerifierCount: level.accepted_verifier_count })) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'No se pueden cerrar las postulaciones para este nivel' });
+    }
+    const updated = await client.query(
+      'UPDATE levels SET applications_open = FALSE, updated_at = NOW() WHERE id = $1 RETURNING id, status, applications_open, updated_at',
+      [req.params.id]
+    );
+    await client.query('COMMIT');
+    res.json({ level: updated.rows[0] });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally { client?.release(); }
+});
+
+router.patch('/:id/withdraw', authenticateToken, async (req, res, next) => {
+  let client;
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const result = await client.query(
+      `SELECT l.id, l.creator_id, l.status,
+              (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count
+       FROM levels l WHERE l.id = $1 FOR UPDATE`,
+      [req.params.id]
+    );
+    const level = result.rows[0];
+    if (!level) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Nivel no encontrado' });
+    }
+    if (String(level.creator_id) !== String(req.user.id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Solo el creador puede retirar este nivel' });
+    }
+    if (!canCreatorWithdrawLevel({ creatorId: level.creator_id, userId: req.user.id, status: level.status, acceptedVerifierCount: level.accepted_verifier_count })) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Solo se puede retirar un nivel disponible sin verificadores aceptados' });
+    }
+    const updated = await client.query(
+      "UPDATE levels SET status = 'CANCELLED', applications_open = FALSE, updated_at = NOW() WHERE id = $1 RETURNING id, status, applications_open, updated_at",
+      [req.params.id]
+    );
+    await client.query('COMMIT');
+    res.json({ level: updated.rows[0] });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally { client?.release(); }
+});
+
 router.post('/:id/applications', authenticateToken, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     const result = await pool.query(
-      `SELECT l.id, l.creator_id, l.game_mode, l.status,
+      `SELECT l.id, l.creator_id, l.game_mode, l.status, l.applications_open,
               l.minimum_hardest_aredl_id,
               u.hardest_classic_aredl_id, u.hardest_platformer_aredl_id
        FROM levels l CROSS JOIN users u
@@ -371,7 +445,7 @@ router.post('/:id/applications', authenticateToken, async (req, res, next) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Nivel no encontrado' });
     const level = result.rows[0];
-    if (level.status !== 'AVAILABLE') return res.status(409).json({ error: 'Este nivel no acepta postulaciones en este momento' });
+    if (level.status !== 'AVAILABLE' || !level.applications_open) return res.status(409).json({ error: 'Este nivel no acepta postulaciones en este momento' });
     if (String(level.creator_id) === String(req.user.id)) return res.status(403).json({ error: 'No podés postularte para verificar tu propio nivel' });
 
     if (level.minimum_hardest_aredl_id) {
@@ -391,12 +465,26 @@ router.post('/:id/applications', authenticateToken, async (req, res, next) => {
       }
     }
 
-    const application = await pool.query(
-      `INSERT INTO applications (level_id, verifier_id, status)
-       VALUES ($1, $2, 'PENDING')
-       RETURNING id, level_id, verifier_id, status, created_at`,
-      [level.id, req.user.id]
-    );
+    const client = await pool.connect();
+    let application;
+    try {
+      await client.query('BEGIN');
+      const locked = await client.query('SELECT status, applications_open FROM levels WHERE id = $1 FOR UPDATE', [level.id]);
+      if (!locked.rows[0] || locked.rows[0].status !== 'AVAILABLE' || !locked.rows[0].applications_open) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'Este nivel no acepta postulaciones en este momento' });
+      }
+      application = await client.query(
+        `INSERT INTO applications (level_id, verifier_id, status)
+         VALUES ($1, $2, 'PENDING')
+         RETURNING id, level_id, verifier_id, status, created_at`,
+        [level.id, req.user.id]
+      );
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally { client.release(); }
     res.status(201).json({ application: application.rows[0] });
   } catch (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'Ya te postulaste para este nivel' });
