@@ -3,7 +3,7 @@ import multer from 'multer';
 import { pool } from '../config/database.js';
 import { authenticateToken, optionalToken } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
-import { canCreatorCloseApplications, canCreatorMarkLevelVerified, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
+import { canCreatorCloseApplications, canCreatorDeleteCancelledLevel, canCreatorMarkLevelVerified, canCreatorRemoveAcceptedVerifier, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
 import { validateApplicationSelection } from '../services/applicationRules.js';
 import { canAccessLevelChat, validateChatAttachment, validateChatMessage } from '../services/chatRules.js';
 
@@ -141,7 +141,11 @@ router.get('/:id', optionalToken, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     const result = await pool.query(
-      `SELECT ${levelFields}
+      `SELECT ${levelFields},
+              (l.creator_id = $2 OR EXISTS (
+                SELECT 1 FROM applications participant
+                WHERE participant.level_id = l.id AND participant.verifier_id = $2 AND participant.status = 'ACCEPTED'
+              )) AS is_chat_participant
        FROM levels l JOIN users u ON u.id = l.creator_id
        WHERE l.id = $1 AND l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')
          AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
@@ -326,7 +330,7 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
        RETURNING id, verifier_id, status, updated_at`,
       [req.params.id, applicationIds]
     );
-    await client.query("UPDATE levels SET status = 'IN_PROGRESS', applications_open = FALSE, updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [req.params.id]);
+    await client.query("UPDATE levels SET status = 'IN_PROGRESS', updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [req.params.id]);
     await client.query(
       `INSERT INTO notifications (user_id, title, message, type, related_level_id)
        SELECT verifier_id, 'Postulación aceptada', $1, 'APPLICATION_ACCEPTED', $2
@@ -391,8 +395,7 @@ router.patch('/:id/close-applications', authenticateToken, async (req, res, next
     client = await pool.connect();
     await client.query('BEGIN');
     const result = await client.query(
-      `SELECT l.id, l.creator_id, l.status, l.applications_open,
-              (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count
+      `SELECT l.id, l.creator_id, l.status, l.applications_open
        FROM levels l WHERE l.id = $1 FOR UPDATE`,
       [req.params.id]
     );
@@ -405,7 +408,7 @@ router.patch('/:id/close-applications', authenticateToken, async (req, res, next
       await client.query('ROLLBACK');
       return res.status(403).json({ error: 'Solo el creador puede cerrar las postulaciones' });
     }
-    if (!canCreatorCloseApplications({ creatorId: level.creator_id, userId: req.user.id, status: level.status, applicationsOpen: level.applications_open, acceptedVerifierCount: level.accepted_verifier_count })) {
+    if (!canCreatorCloseApplications({ creatorId: level.creator_id, userId: req.user.id, status: level.status, applicationsOpen: level.applications_open })) {
       await client.query('ROLLBACK');
       return res.status(409).json({ error: 'No se pueden cerrar las postulaciones para este nivel' });
     }
@@ -415,6 +418,60 @@ router.patch('/:id/close-applications', authenticateToken, async (req, res, next
     );
     await client.query('COMMIT');
     res.json({ level: updated.rows[0] });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally { client?.release(); }
+});
+
+router.delete('/:id/verifiers/:applicationId', authenticateToken, async (req, res, next) => {
+  let client;
+  try {
+    if (!isLevelId(req.params.id) || !isLevelId(req.params.applicationId)) return res.status(404).json({ error: 'Verificador no encontrado' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const levelResult = await client.query('SELECT id, creator_id, status FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const level = levelResult.rows[0];
+    if (!level) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nivel no encontrado' }); }
+    if (String(level.creator_id) !== String(req.user.id)) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'Solo el creador puede remover verificadores' }); }
+    const applicationResult = await client.query('SELECT id, status FROM applications WHERE id = $1 AND level_id = $2 FOR UPDATE', [req.params.applicationId, req.params.id]);
+    if (!applicationResult.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Verificador no encontrado' }); }
+    if (!canCreatorRemoveAcceptedVerifier({ creatorId: level.creator_id, userId: req.user.id, status: level.status, applicationStatus: applicationResult.rows[0].status })) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Solo se puede remover un verificador aceptado de un nivel en progreso' });
+    }
+    await client.query("UPDATE applications SET status = 'REJECTED', updated_at = NOW() WHERE id = $1", [req.params.applicationId]);
+    const remainingResult = await client.query("SELECT COUNT(*)::int AS count FROM applications WHERE level_id = $1 AND status = 'ACCEPTED'", [req.params.id]);
+    const acceptedVerifierCount = remainingResult.rows[0].count;
+    const status = acceptedVerifierCount > 0 ? 'IN_PROGRESS' : 'AVAILABLE';
+    if (acceptedVerifierCount === 0) await client.query("UPDATE levels SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1 AND status = 'IN_PROGRESS'", [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ removed: true, acceptedVerifierCount, status });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally { client?.release(); }
+});
+
+router.delete('/:id', authenticateToken, async (req, res, next) => {
+  let client;
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const result = await client.query('SELECT id, creator_id, status FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const level = result.rows[0];
+    if (!level) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nivel no encontrado' }); }
+    if (String(level.creator_id) !== String(req.user.id)) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'Solo el creador puede borrar este nivel' }); }
+    if (!canCreatorDeleteCancelledLevel({ creatorId: level.creator_id, userId: req.user.id, status: level.status })) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Solo se pueden borrar niveles cancelados' });
+    }
+    await client.query('DELETE FROM verification_submissions WHERE level_id = $1', [req.params.id]);
+    await client.query('DELETE FROM applications WHERE level_id = $1', [req.params.id]);
+    await client.query('DELETE FROM levels WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
+    res.status(204).end();
   } catch (error) {
     if (client) await client.query('ROLLBACK').catch(() => {});
     next(error);

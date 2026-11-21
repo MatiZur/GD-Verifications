@@ -53,19 +53,19 @@ router.post('/register', async (req, res, next) => {
 // INICIO DE SESIÓN
 router.post('/login', async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body ?? {};
 
-    if (typeof email !== 'string' || typeof password !== 'string') {
+    if (typeof username !== 'string' || !username.trim() || typeof password !== 'string') {
       return res.status(400).json({
-        error: 'Email y contraseña son obligatorios'
+        error: 'El nombre de usuario y la contraseña son obligatorios'
       });
     }
 
     const result = await pool.query(
       `SELECT id, username, email, password_hash, avatar_url, role, created_at
        FROM users
-       WHERE email = $1`,
-      [email.trim().toLowerCase()]
+       WHERE username = $1`,
+      [username.trim()]
     );
 
     if (result.rows.length === 0) {

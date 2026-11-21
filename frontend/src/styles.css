@@ -91,6 +91,7 @@ body {
 .applicant-status { padding: 5px 8px; border-radius: 999px; background: rgba(255,255,255,.07); color: #c7c2d8; font-size: 11px; font-weight: 700; }
 .applicant-status-accepted { background: rgba(49,155,104,.15); color: #a5f0c5; }
 .applicant-status-rejected, .applicant-status-withdrawn { background: rgba(255,91,112,.12); color: #ff9eac; }
+.applicant-remove { padding: 7px 9px; font-size: 11px; }
 .applicant-actions { display: flex; align-items: center; justify-content: flex-end; gap: 13px; margin-top: 15px; color: var(--muted); font-size: 13px; }
 .site-footer {
   width: min(100%, 1080px); margin: auto auto 0; padding: 23px 24px;

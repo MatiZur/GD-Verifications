@@ -127,6 +127,20 @@ Comprobaciones de T-17:
 | `cd frontend && npm run build` | **PASS** | Vite compiló la condición de visibilidad del acceso al chat. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
 
+Comprobaciones de T-24:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 23 tests, 0 fallos | Incluye reglas para quitar verificadores, borrar niveles cancelados y cerrar postulaciones explícitamente. |
+| `cd frontend && npm run build` | **PASS** | Vite produjo la compilación de producción. |
+| `node --check` en rutas backend | **PASS** | Sintaxis válida en rutas de niveles y autenticación. |
+| Login en navegador | **PASS** | El formulario solicita nombre de usuario y contraseña, no email. |
+| Menú de idioma en navegador | **PASS** | Se verificó que se cierre al hacer clic fuera. |
+| Health check local | **PASS** — PostgreSQL conectado | API reiniciada con las rutas actualizadas. |
+| Rutas para borrar nivel, remover verificador y cerrar postulaciones sin sesión | **PASS** — HTTP 401 | Las tres requieren autenticación. |
+| Login sin username | **PASS** — HTTP 400 | La API informa que username y contraseña son obligatorios. |
+| `git diff --check` | **PASS** | Sin errores de whitespace. |
+
 ## Cobertura actual y límites
 
 - Las pruebas automatizadas actuales no requieren credenciales, PostgreSQL ni acceso a AREDL.

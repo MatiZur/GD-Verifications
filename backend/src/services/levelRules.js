@@ -50,17 +50,26 @@ export function canCreatorWithdrawLevel({ creatorId, userId, status, acceptedVer
     && Number(acceptedVerifierCount) === 0;
 }
 
-export function canCreatorCloseApplications({ creatorId, userId, status, applicationsOpen, acceptedVerifierCount }) {
+export function canCreatorCloseApplications({ creatorId, userId, status, applicationsOpen }) {
   return String(creatorId) === String(userId)
-    && status === 'AVAILABLE'
-    && applicationsOpen === true
-    && Number(acceptedVerifierCount) === 0;
+    && ['AVAILABLE', 'IN_PROGRESS'].includes(status)
+    && applicationsOpen === true;
 }
 
 export function canCreatorRestoreLevel({ creatorId, userId, status, acceptedVerifierCount }) {
   return String(creatorId) === String(userId)
     && status === 'CANCELLED'
     && Number(acceptedVerifierCount) === 0;
+}
+
+export function canCreatorRemoveAcceptedVerifier({ creatorId, userId, status, applicationStatus }) {
+  return String(creatorId) === String(userId)
+    && status === 'IN_PROGRESS'
+    && applicationStatus === 'ACCEPTED';
+}
+
+export function canCreatorDeleteCancelledLevel({ creatorId, userId, status }) {
+  return String(creatorId) === String(userId) && status === 'CANCELLED';
 }
 
 export function isLevelId(value) {

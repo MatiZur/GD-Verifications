@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canCreatorCloseApplications, canCreatorMarkLevelVerified, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
+import { canCreatorCloseApplications, canCreatorDeleteCancelledLevel, canCreatorMarkLevelVerified, canCreatorRemoveAcceptedVerifier, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
 
 const body = {
   name: 'Example Demon',
@@ -56,13 +56,13 @@ test('only the creator can withdraw an available level without accepted verifier
   assert.equal(canCreatorWithdrawLevel({ ...valid, acceptedVerifierCount: 1 }), false);
 });
 
-test('only the creator can close open applications on an available level without accepted verifiers', () => {
+test('only the creator can explicitly close applications on an available or in-progress level', () => {
   const valid = { creatorId: '10', userId: 10, status: 'AVAILABLE', applicationsOpen: true, acceptedVerifierCount: 0 };
   assert.equal(canCreatorCloseApplications(valid), true);
   assert.equal(canCreatorCloseApplications({ ...valid, userId: 11 }), false);
   assert.equal(canCreatorCloseApplications({ ...valid, applicationsOpen: false }), false);
-  assert.equal(canCreatorCloseApplications({ ...valid, status: 'IN_PROGRESS' }), false);
-  assert.equal(canCreatorCloseApplications({ ...valid, acceptedVerifierCount: 1 }), false);
+  assert.equal(canCreatorCloseApplications({ ...valid, status: 'IN_PROGRESS', acceptedVerifierCount: 1 }), true);
+  assert.equal(canCreatorCloseApplications({ ...valid, status: 'VERIFIED' }), false);
 });
 
 test('only the creator can restore a cancelled level without accepted verifiers', () => {
@@ -71,6 +71,21 @@ test('only the creator can restore a cancelled level without accepted verifiers'
   assert.equal(canCreatorRestoreLevel({ ...valid, userId: 11 }), false);
   assert.equal(canCreatorRestoreLevel({ ...valid, status: 'AVAILABLE' }), false);
   assert.equal(canCreatorRestoreLevel({ ...valid, acceptedVerifierCount: 1 }), false);
+});
+
+test('only the creator can remove an accepted verifier from an in-progress level', () => {
+  const valid = { creatorId: 10, userId: '10', status: 'IN_PROGRESS', applicationStatus: 'ACCEPTED' };
+  assert.equal(canCreatorRemoveAcceptedVerifier(valid), true);
+  assert.equal(canCreatorRemoveAcceptedVerifier({ ...valid, userId: 11 }), false);
+  assert.equal(canCreatorRemoveAcceptedVerifier({ ...valid, status: 'VERIFIED' }), false);
+  assert.equal(canCreatorRemoveAcceptedVerifier({ ...valid, applicationStatus: 'PENDING' }), false);
+});
+
+test('only the creator can delete a cancelled level', () => {
+  const valid = { creatorId: '10', userId: 10, status: 'CANCELLED' };
+  assert.equal(canCreatorDeleteCancelledLevel(valid), true);
+  assert.equal(canCreatorDeleteCancelledLevel({ ...valid, userId: 11 }), false);
+  assert.equal(canCreatorDeleteCancelledLevel({ ...valid, status: 'AVAILABLE' }), false);
 });
 
 test('level IDs must be valid positive PostgreSQL BIGINT values', () => {

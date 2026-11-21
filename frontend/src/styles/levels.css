@@ -142,6 +142,7 @@
 .level-status { border-radius: 999px; padding: 5px 9px; background: rgba(167,139,250,.13); color: #d7caff; font-size: 11px; font-weight: 700; }
 .level-status { background: rgba(255,255,255,.07); color: #c7c2d8; }
 .status-verified { background: rgba(49,155,104,.15); color: #a5f0c5; }
+.status-cancelled { background: rgba(255,91,112,.14); color: #ff9eac; }
 .level-card-title { display: block; margin: 16px 0 7px; overflow-wrap: anywhere; font: 700 21px 'Space Grotesk',sans-serif; }
 .level-card-title:hover { color: #c4b5fd; }
 .level-card-difficulty { margin: 0; color: #c4b5fd; font-weight: 700; }
@@ -152,6 +153,8 @@
 .level-card-requirement strong { color: #d7caff; }
 .level-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .level-card-actions .button { font-size: 12px; padding: 9px 11px; }
+.level-delete-button { border-color: rgba(255,91,112,.35); color: #ff9eac; }
+.level-delete-button:hover { background: rgba(255,91,112,.12); }
 .activity-card > p { color: #a5a2b8; font-size: 13px; line-height: 1.55; }
 .activity-description { white-space: pre-wrap; overflow-wrap: anywhere; }
 .created-levels-list { display: grid; gap: 16px; }

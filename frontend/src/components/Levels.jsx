@@ -252,7 +252,7 @@ export function AllLevelsPage({ language, user, onRequireLogin }) {
   </div></main>;
 }
 
-function ApplicantManagement({ level, language }) {
+function ApplicantManagement({ level, language, onLevelUpdate }) {
   const t = copy[language];
   const [applications, setApplications] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -260,6 +260,7 @@ function ApplicantManagement({ level, language }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [removingId, setRemovingId] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -282,10 +283,21 @@ function ApplicantManagement({ level, language }) {
         method: 'PATCH', body: JSON.stringify({ application_ids: selected })
       });
       setApplications((current) => current.map((application) => selected.includes(String(application.id)) ? { ...application, status: 'ACCEPTED' } : application));
+      onLevelUpdate({ status: 'IN_PROGRESS', accepted_verifier_count: Number(level.accepted_verifier_count || 0) + selected.length });
       setNotice(t.applicantsAccepted.replace('{count}', String(selected.length)));
       setSelected([]);
     } catch (acceptError) { setError(translateError(acceptError.message, language)); }
     finally { setSaving(false); }
+  }
+  async function removeVerifier(application) {
+    if (!window.confirm(t.removeVerifierConfirm)) return;
+    setRemovingId(String(application.id)); setError(''); setNotice('');
+    try {
+      const result = await apiRequest(`/levels/${encodeURIComponent(level.id)}/verifiers/${encodeURIComponent(application.id)}`, { method: 'DELETE' });
+      setApplications((current) => current.map((item) => String(item.id) === String(application.id) ? { ...item, status: 'REJECTED' } : item));
+      onLevelUpdate({ status: result.status, accepted_verifier_count: result.acceptedVerifierCount });
+    } catch (removeError) { setError(translateError(removeError.message, language)); }
+    finally { setRemovingId(null); }
   }
 
   return <section className="applicant-management">
@@ -305,6 +317,7 @@ function ApplicantManagement({ level, language }) {
               <p>{application.matching_hardest_name ? `${t.applicantHardest}: ${application.matching_hardest_name}` : t.noHardestYet}</p>
             </div>
             <span className={`applicant-status applicant-status-${application.status.toLowerCase()}`}>{statusText}</span>
+            {level.status === 'IN_PROGRESS' && application.status === 'ACCEPTED' && <button className="button button-outline applicant-remove" type="button" onClick={() => removeVerifier(application)} disabled={Boolean(removingId)}>{removingId === String(application.id) ? t.savingLevelAction : t.removeVerifier}</button>}
           </article>;
         })}</div>}
     {selected.length > 0 && canAccept && <div className="applicant-actions"><span>{t.selectedApplicants.replace('{count}', String(selected.length))}</span><button className="button button-primary" type="button" onClick={acceptSelected} disabled={saving}>{saving ? t.acceptingApplicants : t.acceptSelected}</button></div>}
@@ -457,10 +470,10 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
       <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
       <p>{t.createdBy} {level.creator_display_name || level.creator_username}{level.status === 'VERIFIED' && level.verified_by?.length > 0 && <span className="verified-by"> · {t.verifiedBy} {level.verified_by.map((verifier) => verifier.display_name || verifier.username).join(', ')}</span>}</p>
       {level.description && <p className="level-detail-description">{level.description}</p>}
-      {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language}/> : <div className="level-apply-section"><p className="level-card-requirement"><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE' || level.applications_open === false}>{applying ? t.savingApplication : level.applications_open === false ? t.applicationsClosed : t.apply}</button>
+      {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language} onLevelUpdate={(changes) => setLevel((current) => ({ ...current, ...changes }))}/> : <div className="level-apply-section"><p className="level-card-requirement"><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE' || level.applications_open === false}>{applying ? t.savingApplication : level.applications_open === false ? t.applicationsClosed : t.apply}</button>
         {applicationNotice && <p className="level-success" role="status">{applicationNotice}</p>}{applicationError && <p className="level-error" role="alert">{applicationError}</p>}
       </div>}
-      {user && Number(level.accepted_verifier_count) > 0 && <div className="level-chat-action"><Link className="button button-outline level-chat-open-button" to={`/levels/${encodeURIComponent(id)}/chat`}>{t.openLevelChat}</Link></div>}
+      {user && level.is_chat_participant && Number(level.accepted_verifier_count) > 0 && <div className="level-chat-action"><Link className="button button-outline level-chat-open-button" to={`/levels/${encodeURIComponent(id)}/chat`}>{t.openLevelChat}</Link></div>}
     </article>}
   </div>;
 }
@@ -501,7 +514,7 @@ function ActivityLevelImage({ item, image }) {
   return src ? <img className="created-level-image" src={src} alt={item.name} loading="lazy"/> : <span className="created-level-image-placeholder" aria-hidden="true"/>;
 }
 
-function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying, verificationError, onCloseApplications, onWithdraw, onRestore, actionBusy, actionError }) {
+function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying, verificationError, onCloseApplications, onWithdraw, onRestore, onDelete, actionBusy, actionError }) {
   const t = copy[language];
   const verifiedStatus = kind === 'levels' ? item.status : item.level_status;
   const verifiedBy = verifiedStatus === 'VERIFIED' && Array.isArray(item.verified_by)
@@ -514,16 +527,17 @@ function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying,
   const image = item.has_image ? apiUrl(`/levels/${item.id}/image`) : youtubeThumbnail(item.showcase_url);
   if (kind === 'levels') return <article className="created-level-card">
     <a className="created-level-image-link" href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><ActivityLevelImage item={item} image={image}/></a>
-    <div className="created-level-content"><div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
+    <div className="created-level-content"><div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className={`level-status${status === 'CANCELLED' ? ' status-cancelled' : ''}`}>{statusText}</span></div>
       <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{item.name}</button>
       <p className="level-card-difficulty">{t.difficultyTop}{item.difficulty_estimate}</p>
       <p>{t.applicationCount}: <strong>{item.application_count}</strong></p>
       <p className="activity-attribution">{t.createdBy} {item.creator_display_name || item.creator_username}{verifiedBy && <span className="verified-by"> · {t.verifiedBy} {verifiedBy}</span>}</p>
       <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button>
         {item.status === 'IN_PROGRESS' && Number(item.accepted_verifier_count) > 0 && <button className="button button-outline" type="button" onClick={() => onMarkVerified(item.id)} disabled={verifying}>{verifying ? t.markingVerified : t.markVerified}</button>}
-        {item.status === 'AVAILABLE' && item.applications_open !== false && <button className="button button-outline" type="button" onClick={() => onCloseApplications(item.id)} disabled={actionBusy}>{actionBusy ? t.savingLevelAction : t.closeApplications}</button>}
+        {['AVAILABLE', 'IN_PROGRESS'].includes(item.status) && item.applications_open !== false && <button className="button button-outline" type="button" onClick={() => onCloseApplications(item.id)} disabled={actionBusy}>{actionBusy ? t.savingLevelAction : t.closeApplications}</button>}
         {item.status === 'AVAILABLE' && Number(item.accepted_verifier_count) === 0 && <button className="button button-outline level-withdraw-button" type="button" onClick={() => onWithdraw(item.id)} disabled={actionBusy}>{actionBusy ? t.savingLevelAction : t.withdrawLevel}</button>}
         {item.status === 'CANCELLED' && <button className="button button-primary" type="button" onClick={() => onRestore(item.id)} disabled={actionBusy}>{actionBusy ? t.restoringLevel : t.restoreLevel}</button>}
+        {item.status === 'CANCELLED' && <button className="button button-outline level-delete-button" type="button" onClick={() => onDelete(item.id)} disabled={actionBusy}>{t.deleteCancelledLevel}</button>}
       </div>
       {verificationError && <p className="level-error" role="alert">{verificationError}</p>}
       {actionError && <p className="level-error" role="alert">{actionError}</p>}
@@ -596,6 +610,15 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
     } catch (actionError) { setActivityActionError(translateError(actionError.message, language)); setActivityActionErrorId(String(levelId)); }
     finally { setActivityActionId(null); }
   }
+  async function deleteCancelledLevel(levelId) {
+    if (!window.confirm(t.deleteCancelledLevelConfirm)) return;
+    setActivityActionId(String(levelId)); setActivityActionError(''); setActivityActionErrorId(null);
+    try {
+      await apiRequest(`/levels/${encodeURIComponent(levelId)}`, { method: 'DELETE' });
+      setItems((current) => current.filter((item) => String(item.id) !== String(levelId)));
+    } catch (actionError) { setActivityActionError(translateError(actionError.message, language)); setActivityActionErrorId(String(levelId)); }
+    finally { setActivityActionId(null); }
+  }
   const title = kind === 'levels' ? t.createdLevels : t.accountVerifications;
   return <main className="levels-page"><div className="levels-content">
     <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{title}</h1><p>{kind === 'levels' ? t.myLevelsIntro : t.myVerificationsIntro}</p></header>
@@ -603,7 +626,7 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
       : loading ? <p className="levels-message">{t.loadingLevels}</p>
         : error ? <p className="levels-message level-error">{error}</p>
           : items.length === 0 ? <p className="levels-message">{kind === 'levels' ? t.emptyMyLevels : t.emptyMyVerifications}</p>
-            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(item.id)} onMarkVerified={markLevelVerified} verifying={verifyingId === String(item.id)} verificationError={verificationErrorId === String(item.id) ? verificationError : ''} onCloseApplications={closeApplications} onWithdraw={withdrawLevel} onRestore={restoreLevel} actionBusy={activityActionId === String(item.id)} actionError={activityActionErrorId === String(item.id) ? activityActionError : ''}/>)}</section>}
+            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(item.id)} onMarkVerified={markLevelVerified} verifying={verifyingId === String(item.id)} verificationError={verificationErrorId === String(item.id) ? verificationError : ''} onCloseApplications={closeApplications} onWithdraw={withdrawLevel} onRestore={restoreLevel} onDelete={deleteCancelledLevel} actionBusy={activityActionId === String(item.id)} actionError={activityActionErrorId === String(item.id) ? activityActionError : ''}/>)}</section>}
     {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </div></main>;
 }

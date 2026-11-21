@@ -84,7 +84,7 @@ function AuthModal({ language, authMode, form, formError, submitting, onClose, o
       </div>
       <form className="auth-form" onSubmit={onSubmit}>
         {authMode === 'register' && <label>{t.username}<input type="text" name="username" placeholder={t.usernamePlaceholder} value={form.username} onChange={onChange} minLength={3} maxLength={30} pattern="[a-zA-Z0-9_]+" title={t.usernameTitle} autoComplete="username" required/></label>}
-        <label>{t.email}<input type="email" name="email" placeholder="you@email.com" value={form.email} onChange={onChange} autoComplete="email" required/></label>
+        <label>{authMode === 'login' ? t.username : t.email}<input type={authMode === 'login' ? 'text' : 'email'} name={authMode === 'login' ? 'username' : 'email'} placeholder={authMode === 'login' ? t.usernamePlaceholder : 'you@email.com'} value={authMode === 'login' ? form.username : form.email} onChange={onChange} autoComplete={authMode === 'login' ? 'username' : 'email'} required/></label>
         <label>{t.password}<input type="password" name="password" placeholder={t.passwordPlaceholder} value={form.password} onChange={onChange} minLength={8} maxLength={72} autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required/></label>
         {formError && <div className="form-error" role="alert">{formError}</div>}
         <button className="button button-primary auth-submit" type="submit" disabled={submitting}>{submitting ? t.processing : authMode === 'login' ? t.login : t.createAccount}</button>
@@ -132,6 +132,16 @@ function AppContent() {
     }).finally(() => setSessionLoading(false));
   }, []);
 
+  useEffect(() => {
+    const closeMenusOutside = (event) => {
+      document.querySelectorAll('.account-menu[open], .language-menu[open]').forEach((menu) => {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+      });
+    };
+    document.addEventListener('pointerdown', closeMenusOutside);
+    return () => document.removeEventListener('pointerdown', closeMenusOutside);
+  }, []);
+
   function openAuth(mode) {
     setAuthMode(mode); setForm({ username: '', email: '', password: '' });
     setFormError(''); setAuthOpen(true);
@@ -145,7 +155,7 @@ function AppContent() {
     try {
       const isRegister = authMode === 'register';
       const data = await apiRequest(isRegister ? '/auth/register' : '/auth/login', {
-        method: 'POST', body: JSON.stringify(isRegister ? form : { email: form.email, password: form.password })
+        method: 'POST', body: JSON.stringify(isRegister ? form : { username: form.username, password: form.password })
       });
       saveAuthToken(data.token); setUser(data.user); setAuthOpen(false);
       setForm({ username: '', email: '', password: '' });
