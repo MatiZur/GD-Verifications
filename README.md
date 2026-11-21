@@ -4,7 +4,7 @@ Plataforma comunitaria para Geometry Dash: perfiles de jugadores, publicación y
 
 Link a la página: https://gd-verifications.matyzur.workers.dev
 
-**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo, postulaciones, actividad, chats, notificaciones y administración. La API Express con PostgreSQL implementa autenticación, permisos, Open verification, revisión administrativa de pruebas y reportes de chat con suspensiones. `backend/schema.sql` mantiene el esquema completo idempotente y la cuenta inicial `owner`; la API lo aplica al arrancar. El propietario informa que el frontend está publicado en Cloudflare y la API/base en Render; la disponibilidad pública debe comprobarse para cada entrega.
+**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo, postulaciones, actividad, chats, notificaciones y administración. La API Express con PostgreSQL implementa autenticación, permisos, Open verification, revisión administrativa de pruebas y reportes de chat con suspensiones. `backend/schema.sql` mantiene el esquema completo idempotente y la cuenta inicial `owner`; la API lo aplica al arrancar. El frontend está publicado en Cloudflare y la API con PostgreSQL en Render. El 2026-11-21 se comprobaron públicamente la web (HTTP 200), el health check de la API con la base conectada (HTTP 200) y CORS desde el origen del frontend; esto no sustituye pruebas E2E de todos los flujos.
 
 ## Documentación del proyecto
 
@@ -21,7 +21,7 @@ Link a la página: https://gd-verifications.matyzur.workers.dev
 - `backend/`: Node.js + Express; API REST bajo `/api/v1`.
 - PostgreSQL: usuarios, perfiles, niveles, postulaciones, chats, notificaciones y auditoría administrativa.
 - Render: un servicio web para la API y una base PostgreSQL, creados por separado desde el panel.
-- Cloudflare Pages: frontend estático generado en `frontend/dist`.
+- Cloudflare Workers: frontend estático publicado en <https://gd-verifications.matyzur.workers.dev>.
 
 ## Requisitos y ejecución local
 
@@ -61,7 +61,7 @@ API health check: <http://localhost:3000/api/v1/health>
 - `/api/v1/admin/users` y `/api/v1/admin/levels/pending`: administración de jugadores y niveles pendientes, restringida a admins y owner. `PATCH /api/v1/admin/levels/:id/review` aprueba o rechaza con auditoría; `PATCH /api/v1/admin/users/:id/promote` es exclusivo del owner.
 - `GET /api/v1/users/aredl/extremes`: listas AREDL que alimentan los selectores de hardest.
 
-La aceptación múltiple de verificadores está implementada. El rechazo individual de postulaciones y el flujo de entrega y resolución de pruebas de verificación siguen pendientes; ver [SPEC](./docs/SPEC.md) y [PLAN](./docs/PLAN.md) para el estado detallado.
+La aceptación múltiple de postulaciones está implementada; todavía no existe una acción para que el creador rechace individualmente una postulación pendiente. Sí están implementados la entrega de pruebas por el creador en nombre de un verificador aceptado, la revisión administrativa, Open verification y los reportes de chat con suspensiones. Ver [SPEC](./docs/SPEC.md) y [PLAN](./docs/PLAN.md) para el alcance detallado.
 
 ## Pruebas
 
@@ -77,7 +77,7 @@ Desde `frontend/`:
 npm run build
 ```
 
-Los tests actuales cubren reglas de negocio y validaciones del backend, pero no reemplazan las pruebas de integración con PostgreSQL ni E2E. Ver [informe de pruebas](./docs/TEST_REPORT.md) para resultados y límites actualizados.
+La suite actual contiene 38 tests automatizados y el frontend compila para producción. No reemplazan un recorrido E2E integral con cuentas reales. Ver [informe de pruebas](./docs/TEST_REPORT.md) para resultados locales, comprobaciones públicas y límites.
 
 ## Despliegue
 
@@ -94,7 +94,7 @@ No se necesita un Blueprint. Para mantener el despliegue en el nivel gratuito, c
    | `NODE_ENV` | `production` |
    | `JWT_SECRET` | Secreto aleatorio largo y privado; generarlo en Render o localmente y guardarlo como secreto. |
    | `DATABASE_URL` | Internal Database URL de PostgreSQL, disponible en la página de la base. No la publiques. |
-   | `FRONTEND_URL` | Origen de Cloudflare Pages, por ejemplo `https://<proyecto>.pages.dev`, sin ruta final. |
+   | `FRONTEND_URL` | Origen exacto del frontend; en el despliegue actual, `https://gd-verifications.matyzur.workers.dev`. |
 
    Mantené la base y el Web Service en la misma región y usá la URL interna de conexión. No copies credenciales de producción al repositorio.
 4. **Desplegar y comprobar:** guardá la configuración y esperá el primer deploy. Al arrancar, la API aplica automáticamente `backend/schema.sql` sobre la base vacía. Revisá los logs para confirmar la inicialización y probá `https://<servicio>.onrender.com/api/v1/health`. El esquema crea la cuenta `owner` con contraseña inicial `owner`: cambiala inmediatamente antes de habilitar el acceso público.
@@ -102,7 +102,9 @@ No se necesita un Blueprint. Para mantener el despliegue en el nivel gratuito, c
 
 El Web Service gratuito puede suspenderse cuando no recibe tráfico y tardar en responder al primer acceso. La base PostgreSQL gratuita también es efímera; no es una opción permanente sin costo para conservar datos. Consultá las [condiciones del nivel gratuito](https://render.com/docs/free) antes de usarlo como producción.
 
-### 2. Frontend en Cloudflare Pages
+### 2. Frontend en Cloudflare Pages (alternativa de publicación)
+
+El frontend comprobado actualmente está publicado en Cloudflare Workers en <https://gd-verifications.matyzur.workers.dev>. Los siguientes valores describen una alternativa para desplegarlo como un proyecto de Pages; no indican que el sitio actual use Pages.
 
 Crear un proyecto Pages conectado al repositorio con estos valores, de acuerdo con la [configuración de build de Pages](https://developers.cloudflare.com/pages/configuration/build-configuration/):
 

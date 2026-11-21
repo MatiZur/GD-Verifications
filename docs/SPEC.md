@@ -32,9 +32,9 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 
 ## Acceso y despliegue
 
-23. **Implementada** — La API usa el prefijo `/api/v1`, ofrece comprobación de salud con PostgreSQL y configura CORS mediante el origen real de Cloudflare Pages.
-24. **Implementada (según despliegue informado por el propietario)** — El frontend está alojado en Cloudflare y la API Express con PostgreSQL en Render. Las credenciales viven solo en variables secretas del servicio.
-25. **Implementada (según despliegue informado por el propietario)** — Frontend, API y base de datos están publicados; la disponibilidad y su URL deben comprobarse desde internet para la evidencia final.
+23. **Implementada** — La API usa el prefijo `/api/v1`, ofrece comprobación de salud con PostgreSQL y configura CORS mediante el origen real del frontend en Cloudflare.
+24. **Implementada** — El frontend está alojado en Cloudflare Workers y la API Express con PostgreSQL en Render. Las credenciales viven solo en variables secretas del servicio.
+25. **Implementada** — Frontend, API y base de datos están publicados. El 2026-11-21 se comprobaron desde internet la página, el health check con base conectada y CORS; ver `docs/TEST_REPORT.md` para el alcance de esa verificación.
 26. **Implementada** — Todas las rutas muestran el mismo encabezado, navegación e idioma y el mismo pie de página; el contenido de navegación depende de la sesión autenticada.
 27. **Implementada** — Al publicar un nivel se puede subir una imagen opcional que se recorta y optimiza a JPG 1920×1080 (16:9), se limita a 4 MB y se guarda en PostgreSQL. Si no hay imagen, el frontend usa la miniatura de YouTube.
 28. **Implementada** — La persona autenticada puede consultar por separado sus niveles publicados (incluyendo estado, postulaciones y datos del nivel) y sus postulaciones de verificación (incluyendo estado de solicitud, nivel, requisito, creador y video). El backend deriva el usuario del token y no acepta un ID de usuario indicado por el cliente.
