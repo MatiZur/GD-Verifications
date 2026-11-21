@@ -642,3 +642,29 @@ footer span {
 
   .auth-modal { padding: 32px 24px; }
 }
+
+@media (max-width: 900px) {
+  .site-header { width: 100%; }
+  .about-sections { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-page { width: min(100% - 40px, 1000px); }
+}
+
+@media (max-width: 520px) {
+  body { min-width: 320px; }
+  .site-header { flex-direction: column; align-items: stretch; gap: 12px; }
+  .site-nav { justify-content: flex-start; }
+  .site-footer { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .about-sections { grid-template-columns: 1fr; }
+  .admin-page { width: calc(100% - 28px); padding-bottom: 48px; }
+  .admin-report-card { min-width: 0; padding: 12px; }
+  .admin-report-actions .button { width: 100%; }
+  .admin-user-row { align-items: flex-start; }
+  .notification-panel { position: fixed; top: 72px; right: 12px; }
+  .toast-notice { right: 12px; bottom: 12px; max-width: calc(100vw - 24px); }
+  .profile-header { flex-direction: column; }
+  .profile-form-actions { align-items: stretch; flex-direction: column-reverse; }
+  .profile-form-actions .button { width: 100%; }
+  .level-chat-messages { min-height: 48vh; max-height: 58vh; padding: 12px; }
+  .chat-participant { max-width: 100%; }
+  .chat-attachment-button { white-space: normal; }
+}

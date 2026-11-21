@@ -78,7 +78,7 @@ Desde `frontend/`:
 npm run build
 ```
 
-La suite actual contiene 42 tests automatizados y el frontend compila para producción. Ver [informe de pruebas](./docs/TEST_REPORT.md) para resultados locales, comprobaciones públicas y límites.
+La suite actual contiene 43 tests automatizados y el frontend compila para producción. Ver [informe de pruebas](./docs/TEST_REPORT.md) para resultados locales, comprobaciones públicas y límites.
 
 ## Despliegue
 

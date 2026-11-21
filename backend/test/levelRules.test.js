@@ -79,6 +79,11 @@ test('open verification accepts applicants immediately while regular levels keep
   assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: false, openVerification: true }), false);
 });
 
+test('a verified level does not close applications on a different available level', () => {
+  assert.equal(canReceiveApplication({ status: 'VERIFIED', applicationsOpen: false, openVerification: false }), false);
+  assert.equal(canReceiveApplication({ status: 'AVAILABLE', applicationsOpen: true, openVerification: false }), true);
+});
+
 test('only the creator can restore a cancelled level without accepted verifiers', () => {
   const valid = { creatorId: '10', userId: 10, status: 'CANCELLED', acceptedVerifierCount: 0 };
   assert.equal(canCreatorRestoreLevel(valid), true);

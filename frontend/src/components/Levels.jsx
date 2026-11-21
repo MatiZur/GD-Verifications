@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiBlob, apiRequest, apiUrl } from '../services/api';
 import { copy, translateError } from '../i18n';
 
@@ -142,12 +143,12 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
     .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
   const recentFirst = (a, b) => new Date(b.created_at) - new Date(a.created_at);
   const catalogSections = [
-    { key: 'classic', title: t.classicMode, items: unverifiedLevels.filter((level) => level.game_mode === 'CLASSIC').sort(recentFirst) },
-    { key: 'platformer', title: t.platformerMode, items: unverifiedLevels.filter((level) => level.game_mode === 'PLATFORMER').sort(recentFirst) },
-    { key: 'recent', title: t.recentLevels, items: [...unverifiedLevels].sort(recentFirst) },
-    { key: 'oldest', title: t.oldestLevels, items: [...unverifiedLevels].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) },
-    { key: 'hardest', title: t.hardestLevels, items: [...unverifiedLevels].sort((a, b) => Number(a.difficulty_estimate) - Number(b.difficulty_estimate)) },
-    { key: 'easiest', title: t.easiestLevels, items: [...unverifiedLevels].sort((a, b) => Number(b.difficulty_estimate) - Number(a.difficulty_estimate)) }
+    { key: 'classic', title: t.classicMode, mode: 'CLASSIC', sort: 'NEWEST', items: unverifiedLevels.filter((level) => level.game_mode === 'CLASSIC').sort(recentFirst) },
+    { key: 'platformer', title: t.platformerMode, mode: 'PLATFORMER', sort: 'NEWEST', items: unverifiedLevels.filter((level) => level.game_mode === 'PLATFORMER').sort(recentFirst) },
+    { key: 'recent', title: t.recentLevels, mode: 'ALL', sort: 'NEWEST', items: [...unverifiedLevels].sort(recentFirst) },
+    { key: 'oldest', title: t.oldestLevels, mode: 'ALL', sort: 'OLDEST', items: [...unverifiedLevels].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) },
+    { key: 'hardest', title: t.hardestLevels, mode: 'ALL', sort: 'HARDEST', items: [...unverifiedLevels].sort((a, b) => Number(a.difficulty_estimate) - Number(b.difficulty_estimate)) },
+    { key: 'easiest', title: t.easiestLevels, mode: 'ALL', sort: 'EASIEST', items: [...unverifiedLevels].sort((a, b) => Number(b.difficulty_estimate) - Number(a.difficulty_estimate)) }
   ];
   const recentlyVerified = [...levels].filter((level) => level.status === 'VERIFIED')
     .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
@@ -192,15 +193,18 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
         {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : <>
           <div className="catalog-category-list">{catalogSections.map((section) => <section className="catalog-category" key={section.key}>
             <header className="catalog-section-heading"><h2>{section.title}</h2><span>{section.items.length}</span></header>
-            {section.items.length ? <section className="levels-grid catalog-levels-grid">{section.items.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyCategory}</p>}
+            {section.items.length ? <section className="levels-grid catalog-levels-grid">{section.items.slice(0, 6).map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyCategory}</p>}
+            <Link className="button button-outline catalog-view-all" to={`/levels/all?mode=${section.mode}&sort=${section.sort}&status=UNVERIFIED`}>{t.viewAll}</Link>
           </section>)}</div>
           <section className="catalog-category catalog-being-verified">
             <header className="catalog-section-heading"><h2>{t.beingVerified}</h2><span>{beingVerified.length}</span></header>
-            {beingVerified.length ? <section className="levels-grid catalog-levels-grid">{beingVerified.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyCategory}</p>}
+            {beingVerified.length ? <section className="levels-grid catalog-levels-grid">{beingVerified.slice(0, 6).map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyCategory}</p>}
+            <Link className="button button-outline catalog-view-all" to="/levels/all?mode=ALL&sort=NEWEST&status=IN_PROGRESS">{t.viewAll}</Link>
           </section>
           <section className="catalog-category catalog-recently-verified">
             <header className="catalog-section-heading"><h2>{t.recentlyVerified}</h2><span>{recentlyVerified.length}</span></header>
-            {recentlyVerified.length ? <section className="levels-grid catalog-levels-grid">{recentlyVerified.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyVerifiedLevels}</p>}
+            {recentlyVerified.length ? <section className="levels-grid catalog-levels-grid">{recentlyVerified.slice(0, 6).map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyVerifiedLevels}</p>}
+            <Link className="button button-outline catalog-view-all" to="/levels/all?mode=ALL&sort=NEWEST&status=VERIFIED">{t.viewAll}</Link>
           </section>
         </>}
       </>}
@@ -209,13 +213,16 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
   </main>;
 }
 
-function AllLevelsFilters({ levels, language, onOpen }) {
+function AllLevelsFilters({ levels, language, onOpen, searchParams }) {
   const t = copy[language];
-  const [mode, setMode] = useState('ALL');
+  const validMode = ['ALL', 'CLASSIC', 'PLATFORMER'].includes(searchParams.get('mode')) ? searchParams.get('mode') : 'ALL';
+  const validSort = ['NEWEST', 'OLDEST', 'HARDEST', 'EASIEST'].includes(searchParams.get('sort')) ? searchParams.get('sort') : 'NEWEST';
+  const validStatus = ['UNVERIFIED', 'IN_PROGRESS', 'VERIFIED', 'ALL'].includes(searchParams.get('status')) ? searchParams.get('status') : 'UNVERIFIED';
+  const [mode, setMode] = useState(validMode);
   const [minimumTop, setMinimumTop] = useState('');
   const [maximumTop, setMaximumTop] = useState('');
-  const [ageOrder, setAgeOrder] = useState('NEWEST');
-  const [verificationStatus, setVerificationStatus] = useState('UNVERIFIED');
+  const [sortOrder, setSortOrder] = useState(validSort);
+  const [verificationStatus, setVerificationStatus] = useState(validStatus);
   const filteredLevels = levels.filter((level) => {
     if (mode !== 'ALL' && level.game_mode !== mode) return false;
     if (minimumTop && Number(level.difficulty_estimate) < Number(minimumTop)) return false;
@@ -224,15 +231,19 @@ function AllLevelsFilters({ levels, language, onOpen }) {
     if (verificationStatus === 'IN_PROGRESS' && level.status !== 'IN_PROGRESS') return false;
     if (verificationStatus === 'VERIFIED' && level.status !== 'VERIFIED') return false;
     return true;
-  }).sort((a, b) => ageOrder === 'NEWEST'
-    ? new Date(b.created_at) - new Date(a.created_at)
-    : new Date(a.created_at) - new Date(b.created_at));
+  }).sort((a, b) => {
+    if (sortOrder === 'HARDEST') return Number(a.difficulty_estimate) - Number(b.difficulty_estimate) || new Date(b.created_at) - new Date(a.created_at);
+    if (sortOrder === 'EASIEST') return Number(b.difficulty_estimate) - Number(a.difficulty_estimate) || new Date(b.created_at) - new Date(a.created_at);
+    const aDate = sortOrder === 'NEWEST' && verificationStatus === 'VERIFIED' ? new Date(a.updated_at || a.created_at) : new Date(a.created_at);
+    const bDate = sortOrder === 'NEWEST' && verificationStatus === 'VERIFIED' ? new Date(b.updated_at || b.created_at) : new Date(b.created_at);
+    return sortOrder === 'NEWEST' ? bDate - aDate : aDate - bDate;
+  });
 
   return <>
     <div className="catalog-filter-panel">
       <label>{t.modeFilter}<select value={mode} onChange={(event) => setMode(event.target.value)}><option value="ALL">{t.bothModes}</option><option value="CLASSIC">{t.classicMode}</option><option value="PLATFORMER">{t.platformerMode}</option></select></label>
       <fieldset className="catalog-difficulty-filter"><legend>{t.difficultyFilter}</legend><label>{t.topFrom}<input type="number" min="1" max="10000" value={minimumTop} onChange={(event) => setMinimumTop(event.target.value)}/></label><label>{t.topTo}<input type="number" min="1" max="10000" value={maximumTop} onChange={(event) => setMaximumTop(event.target.value)}/></label></fieldset>
-      <label>{t.ageFilter}<select value={ageOrder} onChange={(event) => setAgeOrder(event.target.value)}><option value="NEWEST">{t.newestFirst}</option><option value="OLDEST">{t.oldestFirst}</option></select></label>
+      <label>{t.sortFilter}<select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)}><option value="NEWEST">{t.newestFirst}</option><option value="OLDEST">{t.oldestFirst}</option><option value="HARDEST">{t.hardestLevels}</option><option value="EASIEST">{t.easiestLevels}</option></select></label>
       <label>{t.verificationFilter}<select value={verificationStatus} onChange={(event) => setVerificationStatus(event.target.value)}><option value="UNVERIFIED">{t.unverifiedOnly}</option><option value="IN_PROGRESS">{t.beingVerified}</option><option value="VERIFIED">{t.verifiedOnly}</option><option value="ALL">{t.allStatuses}</option></select></label>
     </div>
     {filteredLevels.length ? <section className="levels-grid catalog-levels-grid">{filteredLevels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => onOpen(level.id)}/>)}</section> : <p className="catalog-empty">{t.noFilterMatches}</p>}
@@ -241,6 +252,7 @@ function AllLevelsFilters({ levels, language, onOpen }) {
 
 export function AllLevelsPage({ language, user, onRequireLogin }) {
   const t = copy[language];
+  const [searchParams] = useSearchParams();
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -254,7 +266,7 @@ export function AllLevelsPage({ language, user, onRequireLogin }) {
   }, [language]);
   return <main className="levels-page"><div className="levels-content">
     <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{t.allLevels}</h1><p>{t.allLevelsIntro}</p><Link className="button button-outline" to="/levels">{t.levelCategories}</Link></header>
-    {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : <AllLevelsFilters levels={levels} language={language} onOpen={setOpenLevelId}/>}
+    {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : <AllLevelsFilters levels={levels} language={language} onOpen={setOpenLevelId} searchParams={searchParams}/>}
     {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </div></main>;
 }
@@ -574,8 +586,13 @@ function VerificationSubmissionForm({ item, language, onSubmit, submitting }) {
   const [videoUrl, setVideoUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    if (!open) return undefined;
+    function closeOnEscape(event) { if (event.key === 'Escape') setOpen(false); }
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [open]);
   async function openForm() {
-    if (open) { setOpen(false); return; }
     setOpen(true);
     if (accepted.length) return;
     setLoading(true); setLoadError('');
@@ -594,20 +611,28 @@ function VerificationSubmissionForm({ item, language, onSubmit, submitting }) {
   }
   if (item.verification_pending) return <p className="level-success" role="status">{t.verificationPending}</p>;
   return <div className="verification-submission-control">
-    <button className="button button-outline" type="button" onClick={openForm} disabled={submitting}>{open ? t.cancel : t.markVerified}</button>
-    {open && <form className="verification-submission-form" onSubmit={submit}>
-      {loading ? <p>{t.loading}</p> : <>
-        {accepted.length === 0 ? <p className="level-error">{t.noApplicants}</p> : <>
-          <label>{t.chooseVerifier}<select value={verifierId} onChange={(event) => setVerifierId(event.target.value)} required>
-            {accepted.map((application) => <option key={application.id} value={application.verifier_id}>{application.display_name || application.username}</option>)}
-          </select></label>
-          <label>{t.publicLevelId}<input value={publicLevelId} onChange={(event) => setPublicLevelId(event.target.value)} inputMode="numeric" pattern="[0-9]{1,30}" maxLength={30} required/></label>
-          <label>{t.verificationVideo}<input type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="https://youtu.be/..." maxLength={2048} required/></label>
-          <button className="button button-primary" type="submit" disabled={submitting}>{submitting ? t.markingVerified : t.submitForReview}</button>
-        </>}
-      </>}
-      {loadError && <p className="level-error" role="alert">{loadError}</p>}
-    </form>}
+    <button className="button button-outline" type="button" onClick={openForm} disabled={submitting}>{t.markVerified}</button>
+    {open && createPortal(<div className="verification-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+      <section className="verification-modal" role="dialog" aria-modal="true" aria-labelledby="verification-modal-title">
+        <h2 id="verification-modal-title">{t.markVerified}</h2>
+        <form className="verification-submission-form" onSubmit={submit}>
+          {loading ? <p>{t.loading}</p> : <>
+            {accepted.length === 0 ? <p className="level-error">{t.noApplicants}</p> : <>
+              <label>{t.chooseVerifier}<select value={verifierId} onChange={(event) => setVerifierId(event.target.value)} required>
+                {accepted.map((application) => <option key={application.id} value={application.verifier_id}>{application.display_name || application.username}</option>)}
+              </select></label>
+              <label>{t.publicLevelId}<input value={publicLevelId} onChange={(event) => setPublicLevelId(event.target.value)} inputMode="numeric" pattern="[0-9]{1,30}" maxLength={30} required/></label>
+              <label>{t.verificationVideo}<input type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="https://youtu.be/..." maxLength={2048} required/></label>
+            </>}
+          </>}
+          {loadError && <p className="level-error" role="alert">{loadError}</p>}
+          <div className="verification-modal-actions">
+            <button className="button button-outline" type="button" onClick={() => setOpen(false)}>{t.cancel}</button>
+            {accepted.length > 0 && <button className="button button-primary" type="submit" disabled={loading || submitting}>{submitting ? t.markingVerified : t.submitForReview}</button>}
+          </div>
+        </form>
+      </section>
+    </div>, document.body)}
   </div>;
 }
 
@@ -719,7 +744,7 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
   }
   const title = kind === 'levels' ? t.createdLevels : t.accountVerifications;
   return <main className="levels-page"><div className="levels-content">
-    <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{title}</h1><p>{kind === 'levels' ? t.myLevelsIntro : t.myVerificationsIntro}</p></header>
+    <header className="levels-heading activity-heading"><div><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{title}</h1><p>{kind === 'levels' ? t.myLevelsIntro : t.myVerificationsIntro}</p></div>{kind === 'levels' && <Link className="button button-primary" to="/levels/new">{t.newLevel}</Link>}</header>
     {!user ? <section className="levels-login-card"><p>{t.signInToViewActivity}</p><button className="button button-primary" type="button" onClick={onRequireLogin}>{t.login}</button></section>
       : loading ? <p className="levels-message">{t.loadingLevels}</p>
         : error ? <p className="levels-message level-error">{error}</p>
