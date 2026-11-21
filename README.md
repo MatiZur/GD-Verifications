@@ -2,9 +2,9 @@
 
 Plataforma comunitaria para Geometry Dash: perfiles de jugadores, publicación y descubrimiento de niveles, postulaciones, verificaciones, chats y moderación.
 
-Link a la página: gd-verifications.matyzur.workers.dev
+Link a la página: https://gd-verifications.matyzur.workers.dev
 
-> **Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo y publicación moderada de niveles, postulaciones, actividad, chats, notificaciones y panel administrativo. La API Express con PostgreSQL implementa autenticación, permisos por rol y propiedad, moderación auditada y las funciones descritas en esta documentación. La migración 011 crea la cuenta inicial `owner`; cambiá su contraseña antes de exponer el servicio. El frontend está publicado en [Cloudflare](https://gd-verifications.matyzur.workers.dev/). El estado de la API y la base de datos depende del despliegue configurado en Render; consultá el informe de pruebas para el alcance verificado.
+**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo y publicación moderada de niveles, postulaciones, actividad, chats, notificaciones y panel administrativo. La API Express con PostgreSQL implementa autenticación, permisos por rol y propiedad, moderación auditada y las funciones descritas en esta documentación. La migración 011 crea la cuenta inicial `owner`; cambiá su contraseña antes de exponer el servicio. El frontend está publicado en Cloudflare. El estado de la API y la base de datos depende del despliegue configurado en Render; consultá el informe de pruebas para el alcance verificado.
 
 ## Documentación del proyecto
 
