@@ -9,7 +9,6 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 3. **Implementada** — La contraseña debe tener entre 8 y 72 caracteres y se almacena con bcrypt, nunca en texto plano.
 4. **Implementada** — El registro público asigna `USER`; el cliente no puede elegir el rol `ADMIN`.
 5. **Implementada** — El inicio de sesión entrega un JWT con vencimiento de siete días; las rutas protegidas verifican el token.
-6. **Planificada** — Limitar intentos de inicio de sesión y aplicar políticas adicionales contra abuso antes de producción.
 7. **Implementada** — Un usuario puede consultar el perfil público por username; los campos privados (email y hash de contraseña) no se exponen en esa respuesta.
 8. **Implementada** — El dueño del perfil puede editar nombre visible, pronombres, país, avatar, username de Geometry Dash, hardest clásico/plataforma, descripción, YouTube y Discord.
 9. **Implementada** — El dueño puede cambiar la contraseña desde su perfil confirmando la contraseña actual; no se envía correo.
@@ -22,19 +21,18 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 ## Niveles, verificaciones y moderación
 
 15. **Implementada** — Publicar un nivel requiere autenticación y guarda nombre, modalidad (`CLASSIC` o `PLATFORMER`), dificultad estimada `Top N` (N entre 1 y 10000), video de YouTube, descripción opcional y creador. Si se define un hardest mínimo, debe pertenecer a la lista AREDL de la modalidad elegida. Los niveles nuevos quedan `PENDING_REVIEW` y no aparecen en el catálogo hasta que un admin o el owner los apruebe.
-16. **Planificada** — Solo el creador puede editar su nivel; los cambios no pueden saltarse moderación ni alterar la propiedad.
+16. **Implementada** — Solo el creador puede editar su nivel; los cambios no pueden saltarse moderación ni alterar la propiedad.
 17. **Implementada** — Los niveles usan estados definidos: `PENDING_REVIEW`, `AVAILABLE`, `IN_PROGRESS`, `VERIFIED`, `REJECTED` o `CANCELLED`. El backend implementa asignación de verificadores, cierre de postulaciones, retiro/restauración y la transición a `VERIFIED` únicamente al aprobar administración una entrega (regla 21).
 18. **Implementada** — Un usuario autenticado puede postularse una sola vez por nivel disponible; el autor no puede postularse para verificar su propio nivel. Si hay hardest mínimo, el backend compara el puesto AREDL del perfil en la misma modalidad: una posición numéricamente igual o menor (más difícil) cumple el requisito. Sin mínimo, cualquier usuario salvo el autor puede postularse.
 19. **Implementada** — El creador puede consultar los postulantes de su nivel (sin datos privados) y aceptar en una operación atómica una o varias postulaciones pendientes. Aceptar no modifica `applications_open`; solo el creador puede cerrarlas explícitamente. Otros usuarios no pueden verlas ni resolverlas.
 20. **Implementada** — El creador envía una entrega de verificación eligiendo un verificador aceptado, ingresando el ID público de Geometry Dash y un video HTTPS de YouTube. La entrega queda `PENDING` y el nivel no se considera verificado hasta la decisión administrativa.
 21. **Implementada** — Admin u owner pueden aprobar o rechazar entregas pendientes. Al aprobar, el nivel pasa a `VERIFIED`, guarda el ID público, muestra como video principal la prueba aprobada y atribuye la verificación al jugador seleccionado. El rechazo conserva el nivel en progreso.
-22. **Parcial** — La API privada y la campana muestran notificaciones persistentes de postulaciones recibidas/aceptadas, verificaciones aceptadas y mensajes nuevos en chats. Solo el destinatario puede consultarlas o marcarlas como leídas. Otros eventos y notificaciones push quedan pendientes.
+22. **Implementada** — La API privada y la campana muestran notificaciones persistentes de postulaciones recibidas/aceptadas, verificaciones aceptadas y mensajes nuevos en chats. Solo el destinatario puede consultarlas o marcarlas como leídas.
 23. **Implementada** — Admin y owner pueden consultar jugadores, revisar niveles nuevos y resolver entregas de verificación `PENDING`; cada decisión se registra en `admin_logs`. Solo `OWNER` puede promover una cuenta `USER` a `ADMIN`. La API vuelve a comprobar el rol vigente en PostgreSQL.
-24. **Planificada** — Videos se almacenan como URL de YouTube; no se suben archivos de video a Render ni a PostgreSQL.
 
 ## Acceso y despliegue
 
-25. **Parcial** — La API usa el prefijo `/api/v1` y ofrece comprobación de salud con PostgreSQL. CORS debe configurarse con el origen real de Cloudflare Pages.
+25. **Implementada** — La API usa el prefijo `/api/v1`, ofrece comprobación de salud con PostgreSQL y configura CORS mediante el origen real de Cloudflare Pages.
 26. **Implementada (según despliegue informado por el propietario)** — El frontend está alojado en Cloudflare y la API Express con PostgreSQL en Render. Las credenciales viven solo en variables secretas del servicio.
 27. **Implementada (según despliegue informado por el propietario)** — Frontend, API y base de datos están publicados; la disponibilidad y su URL deben comprobarse desde internet para la evidencia final.
 28. **Implementada** — Todas las rutas muestran el mismo encabezado, navegación e idioma y el mismo pie de página; el contenido de navegación depende de la sesión autenticada.
