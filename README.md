@@ -4,7 +4,7 @@ Plataforma comunitaria para Geometry Dash: perfiles de jugadores, publicación y
 
 Link a la página: https://gd-verifications.matyzur.workers.dev
 
-**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo, postulaciones, actividad, chats, notificaciones y administración. La API Express con PostgreSQL implementa autenticación, permisos, Open verification, revisión administrativa de pruebas y reportes de chat con suspensiones. `backend/schema.sql` mantiene el esquema completo idempotente y la cuenta inicial `owner`; la API lo aplica al arrancar. El frontend está publicado en Cloudflare y la API con PostgreSQL en Render. El 2026-11-21 se comprobaron públicamente la web (HTTP 200), el health check de la API con la base conectada (HTTP 200) y CORS desde el origen del frontend; esto no sustituye pruebas E2E de todos los flujos.
+**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo, postulaciones, actividad, chats, notificaciones y administración. La API Express con PostgreSQL implementa autenticación, permisos, Open verification, revisión administrativa de pruebas y reportes de chat con suspensiones. El frontend está publicado en Cloudflare y la API con PostgreSQL en Render.
 
 ## Documentación del proyecto
 
@@ -78,13 +78,11 @@ Desde `frontend/`:
 npm run build
 ```
 
-La suite actual contiene 42 tests automatizados y el frontend compila para producción. No reemplazan un recorrido E2E integral con cuentas reales. Ver [informe de pruebas](./docs/TEST_REPORT.md) para resultados locales, comprobaciones públicas y límites.
+La suite actual contiene 42 tests automatizados y el frontend compila para producción. Ver [informe de pruebas](./docs/TEST_REPORT.md) para resultados locales, comprobaciones públicas y límites.
 
 ## Despliegue
 
 ### 1. API + PostgreSQL en Render
-
-No se necesita un Blueprint. Para mantener el despliegue en el nivel gratuito, creá los dos recursos manualmente desde el panel de Render:
 
 1. **Crear PostgreSQL:** en Render, elegí `New` → `PostgreSQL`; poné un nombre (por ejemplo `gd-verifications-db`), la base `gd_verifications` y seleccioná el plan **Free**. Elegí una región y anotala para usar la misma en el servicio web. Una base gratuita de Render es temporal: expira a los 30 días y tiene límites de almacenamiento, conexiones y disponibilidad; exportá los datos antes de esa fecha si necesitás conservarlos ([detalles y límites del plan gratuito](https://render.com/docs/free)).
 2. **Crear la API:** elegí `New` → `Web Service`, conectá este repositorio y configurá `Root Directory` como `backend`, `Build Command` como `npm ci`, `Start Command` como `npm start`, la misma región de PostgreSQL y el plan **Free**. Configurá el health check como `/api/v1/health`.
