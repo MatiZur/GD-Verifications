@@ -6,11 +6,11 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 
 - [x] **T-01 — Especificación y acuerdos de colaboración.** Reglas de negocio numeradas, estados de implementación y planificación, instrucciones para agentes y plan de trabajo. Confirmación: `Docs: Especificación, reglas para agentes y plan de tareas`.
 - [x] **T-02 — Pruebas automatizadas iniciales.** Extraer validadores de registro/perfil y cubrirlos con Node.js Test Runner. Confirmación: `Test: Cobertura automática de validación de cuentas y perfiles`.
-- [x] **T-03 — Preparación de documentación y despliegue.** README de uso/despliegue, variables de ejemplo y Blueprint para API + PostgreSQL en Render. Confirmación: `Docs: Preparación del despliegue y entrega del proyecto`.
+- [x] **T-03 — Preparación de documentación y despliegue.** README de uso/despliegue, variables de ejemplo e instrucciones para crear manualmente el Web Service y PostgreSQL en Render sin Blueprint. Confirmación histórica: `Docs: Preparación del despliegue y entrega del proyecto`.
 
 ## Próximas tareas (pendientes, no desplegadas)
 
-- [ ] **T-04 — Publicar infraestructura.** Crear API y PostgreSQL en Render, comprobar el bootstrap automático de `backend/schema.sql` sobre una base vacía y registrar una URL saludable de la API; conectar el frontend ya alojado en Cloudflare mediante `VITE_API_URL`.
+- [ ] **T-04 — Publicar infraestructura.** Crear manualmente un Web Service Free y una PostgreSQL Free en Render, comprobar el bootstrap automático de `backend/schema.sql` sobre una base vacía y registrar una URL saludable de la API; conectar el frontend ya alojado en Cloudflare mediante `VITE_API_URL`. La base Free expira a los 30 días; la publicación y su continuidad siguen pendientes.
 - [x] **T-05 — Publicación y catálogo de niveles.** API y pantallas para publicar, descubrir y consultar niveles; validación de YouTube, modalidad y dificultad Top; postulación con requisito mínimo de hardest validado por AREDL. Confirmación: `Feat: Publicación y catálogo de niveles con requisito de hardest`.
 - [x] **T-10 — Navegación común, imágenes y actividad personal.** Header/footer compartidos, imagen 16:9 con miniatura de YouTube de respaldo, y vistas privadas de niveles publicados y postulaciones. Confirmación: `Feat: Actividad personal e imágenes para niveles`.
 - [x] **T-11 — Menú de cuenta y selección de verificadores.** Menú con foto/nombre y acceso agrupado a perfil, verificaciones, niveles creados y cierre de sesión; selección y aceptación de uno o varios postulantes con autorización del creador. Confirmación: `Feat: Menú de cuenta y selección múltiple de verificadores`.

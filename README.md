@@ -20,7 +20,7 @@ Link a la página: https://gd-verifications.matyzur.workers.dev
 - `frontend/`: React + Vite; interfaz en español/inglés.
 - `backend/`: Node.js + Express; API REST bajo `/api/v1`.
 - PostgreSQL: usuarios, perfiles, niveles, postulaciones, chats, notificaciones y auditoría administrativa.
-- Render Blueprint: `render.yaml` declara API y PostgreSQL relacionados.
+- Render: un servicio web para la API y una base PostgreSQL, creados por separado desde el panel.
 - Cloudflare Pages: frontend estático generado en `frontend/dist`.
 
 ## Requisitos y ejecución local
@@ -81,11 +81,24 @@ Los tests actuales cubren reglas de negocio y validaciones del backend, pero no 
 
 ### 1. API + PostgreSQL en Render
 
-El archivo [render.yaml](./render.yaml) declara un Blueprint con una API Node y una base PostgreSQL conectada mediante `DATABASE_URL`; Render genera `JWT_SECRET` y solicita `FRONTEND_URL` como valor externo. En Render, crear un Blueprint desde este repositorio y revisar los recursos y costos antes de confirmar.
+No se necesita un Blueprint. Para mantener el despliegue en el nivel gratuito, creá los dos recursos manualmente desde el panel de Render:
 
-El Blueprint asigna el plan gratuito al servicio web y el plan PostgreSQL persistente mínimo (`0.1c-256mb`). Según la [página de precios de Render](https://render.com/pricing), ese plan de PostgreSQL figura actualmente a USD 6/mes; el precio puede cambiar. La base gratuita de Render expira a los 30 días, por lo que no se usa para una entrega que deba conservar datos a largo plazo ([límites del plan gratuito](https://render.com/docs/free)).
+1. **Crear PostgreSQL:** en Render, elegí `New` → `PostgreSQL`; poné un nombre (por ejemplo `gd-verifications-db`), la base `gd_verifications` y seleccioná el plan **Free**. Elegí una región y anotala para usar la misma en el servicio web. Una base gratuita de Render es temporal: expira a los 30 días y tiene límites de almacenamiento, conexiones y disponibilidad; exportá los datos antes de esa fecha si necesitás conservarlos ([detalles y límites del plan gratuito](https://render.com/docs/free)).
+2. **Crear la API:** elegí `New` → `Web Service`, conectá este repositorio y configurá `Root Directory` como `backend`, `Build Command` como `npm ci`, `Start Command` como `npm start`, la misma región de PostgreSQL y el plan **Free**. Configurá el health check como `/api/v1/health`.
+3. **Agregar variables del servicio web:**
 
-Después de crear la base PostgreSQL en Render, el primer arranque de la API aplica automáticamente `backend/schema.sql`. Asegurate de que `DATABASE_URL` apunte a una base vacía; si ya existe un esquema parcial o antiguo, creá una base nueva en Render en lugar de borrar datos a ciegas. Revisá los logs del servicio para confirmar el mensaje de inicialización y luego comprobá `/api/v1/health`. El esquema crea la cuenta `owner` con contraseña inicial `owner`: cambiala inmediatamente antes de habilitar el acceso público. Copiá la URL pública de la API para configurar Cloudflare.
+   | Variable | Valor |
+   | --- | --- |
+   | `NODE_ENV` | `production` |
+   | `JWT_SECRET` | Secreto aleatorio largo y privado; generarlo en Render o localmente y guardarlo como secreto. |
+   | `DATABASE_URL` | Internal Database URL de PostgreSQL, disponible en la página de la base. No la publiques. |
+   | `FRONTEND_URL` | Origen de Cloudflare Pages, por ejemplo `https://<proyecto>.pages.dev`, sin ruta final. |
+
+   Mantené la base y el Web Service en la misma región y usá la URL interna de conexión. No copies credenciales de producción al repositorio.
+4. **Desplegar y comprobar:** guardá la configuración y esperá el primer deploy. Al arrancar, la API aplica automáticamente `backend/schema.sql` sobre la base vacía. Revisá los logs para confirmar la inicialización y probá `https://<servicio>.onrender.com/api/v1/health`. El esquema crea la cuenta `owner` con contraseña inicial `owner`: cambiala inmediatamente antes de habilitar el acceso público.
+5. **Conectar Cloudflare:** configurá `VITE_API_URL=https://<servicio>.onrender.com/api/v1` en Cloudflare Pages y volvé a desplegar el frontend.
+
+El Web Service gratuito puede suspenderse cuando no recibe tráfico y tardar en responder al primer acceso. La base PostgreSQL gratuita también es efímera; no es una opción permanente sin costo para conservar datos. Consultá las [condiciones del nivel gratuito](https://render.com/docs/free) antes de usarlo como producción.
 
 ### 2. Frontend en Cloudflare Pages
 
@@ -107,7 +120,3 @@ Configurar el valor de `VITE_API_URL` para producción en Cloudflare Pages y vol
 - Backend debe validar identidad, rol y propiedad para cada nueva operación; la UI sola no protege acciones.
 - Antes de producción: rate limiting, reglas de contraseñas más robustas, validación integral de entradas, estrategia de expiración/revocación JWT, monitoreo y pruebas de integración/E2E.
 - Los videos se muestran mediante enlaces validados de YouTube; no se suben archivos de video. AREDL provee los hardest del perfil y los requisitos de niveles.
-
-## Repositorio
-
-<https://github.com/MatiZur/GD-Verifications>

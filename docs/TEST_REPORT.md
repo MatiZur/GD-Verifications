@@ -161,6 +161,7 @@ Comprobaciones de T-07:
 - Aún no existen pruebas de integración para rutas HTTP, JWT con base real, inicialización del esquema contra PostgreSQL/Render, solicitudes contra AREDL ni pruebas end-to-end.
 - El health check se probó previamente contra la base local durante el desarrollo; esto no prueba la base de Render ni la disponibilidad pública.
 - Según el estado informado por el propietario, el frontend ya está alojado en Cloudflare. La API y la base de Render aún requieren validación pública; queda pendiente en T-04/T-09.
+- El procedimiento documentado usa creación manual de un Web Service Free y una PostgreSQL Free en Render, sin Blueprint. La PostgreSQL Free expira a los 30 días; no se considera una base persistente para producción.
 
 ## Comprobaciones del bootstrap desde cero
 
