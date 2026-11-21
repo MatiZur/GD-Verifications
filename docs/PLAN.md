@@ -2,17 +2,17 @@
 
 Una tarea terminada tiene un commit propio. El estado describe este repositorio al momento de esta entrega; las funcionalidades futuras no se marcan como hechas.
 
-## Tareas completadas en esta entrega
+## Tareas
 
 - [x] **T-01 — Especificación y acuerdos de colaboración.** Reglas de negocio numeradas, estados de implementación y planificación, instrucciones para agentes y plan de trabajo. Confirmación: `Docs: Especificación, reglas para agentes y plan de tareas`.
 - [x] **T-02 — Pruebas automatizadas iniciales.** Extraer validadores de registro/perfil y cubrirlos con Node.js Test Runner. Confirmación: `Test: Cobertura automática de validación de cuentas y perfiles`.
 - [x] **T-03 — Preparación de documentación y despliegue.** README de uso/despliegue, variables de ejemplo e instrucciones para crear manualmente el Web Service y PostgreSQL en Render sin Blueprint. Confirmación histórica: `Docs: Preparación del despliegue y entrega del proyecto`.
-- [x] **T-25 — Open verification, revisión de entregas y reportes de chat.** Aceptar sin cerrar postulaciones, aceptación automática configurable, entrega de ID pública/video atribuida a un verificador y moderación administrativa; reportes con lectura temporal del chat y suspensiones temporales/permanentes. Confirmación: `Feat: Flujo de verificación, reportes y sanciones`.
-
-## Próximas tareas (pendientes, no desplegadas)
-
-- [x] **T-04 — Publicar infraestructura.** API y PostgreSQL desplegadas en Render y frontend en Cloudflare, según confirmación del propietario. La base Free de Render expira a los 30 días; verificar modalidad y continuidad del almacenamiento antes de producción.
+- [x] **T-04 — Publicar infraestructura.** API y PostgreSQL desplegadas en Render y frontend en Cloudflare, según confirmación del propietario. La disponibilidad pública y la continuidad de la base Free (que expira a los 30 días) deben validarse antes de producción.
 - [x] **T-05 — Publicación y catálogo de niveles.** API y pantallas para publicar, descubrir y consultar niveles; validación de YouTube, modalidad y dificultad Top; postulación con requisito mínimo de hardest validado por AREDL. Confirmación: `Feat: Publicación y catálogo de niveles con requisito de hardest`.
+- [ ] **T-06 — Resolución de postulaciones y entregas.** La aceptación múltiple y el flujo de entrega/revisión de verificaciones están implementados. Falta completar y probar el rechazo individual de postulaciones y todas sus transiciones de estado.
+- [x] **T-07 — Notificaciones, administración y roles.** Campana de notificaciones, panel de usuarios y niveles pendientes, moderación auditada, promoción exclusiva del owner, cuenta owner inicial y chats limitados a jugadores participantes. Confirmación: `Feat: Panel de administración y cuenta owner`.
+- [ ] **T-08 — Pruebas de integración y recorrido end-to-end.** Probar la inicialización de PostgreSQL desde cero y los flujos completos en un entorno de staging. Las pruebas actuales no cubren estos casos integralmente.
+- [ ] **T-09 — Evidencia de entrega final.** Actualizar `docs/TEST_REPORT.md` con resultados del entorno publicado y enlazar frontend/API públicos. La API y PostgreSQL públicas aún no están validadas según el informe de pruebas.
 - [x] **T-10 — Navegación común, imágenes y actividad personal.** Header/footer compartidos, imagen 16:9 con miniatura de YouTube de respaldo, y vistas privadas de niveles publicados y postulaciones. Confirmación: `Feat: Actividad personal e imágenes para niveles`.
 - [x] **T-11 — Menú de cuenta y selección de verificadores.** Menú con foto/nombre y acceso agrupado a perfil, verificaciones, niveles creados y cierre de sesión; selección y aceptación de uno o varios postulantes con autorización del creador. Confirmación: `Feat: Menú de cuenta y selección múltiple de verificadores`.
 - [x] **T-12 — Chat por nivel y vistas de actividad.** Chat grupal del creador con verificadores aceptados, permisos por participante y vistas diferenciadas de catálogo/propios/postulaciones. Confirmación: `Feat: Chat de nivel y detalles en contexto`.
@@ -28,10 +28,7 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 - [x] **T-22 — Espaciado de categorías del catálogo.** Mantener una separación visual uniforme antes de la sección Siendo verificados. Confirmación: `Fix: Espaciado de categorías`.
 - [x] **T-23 — Restauración, página informativa y avisos.** Restaurar niveles cancelados solo para su creador, restringir su visibilidad, compactar Niveles creados, agregar Acerca de y redirección de logout, y conectar notificaciones persistentes y avisos temporales. Confirmación: `Feat: Restauración y notificaciones de niveles`.
 - [x] **T-24 — Gestión de verificadores, acceso y sesión.** Restringir el botón de chat a participantes, conservar abiertas las postulaciones al aceptar verificadores hasta que el creador las cierre, permitir remover verificadores y borrar niveles cancelados, e iniciar sesión con username. Confirmación: `Feat: Gestión de verificadores y acceso por usuario`.
-- [ ] **T-06 — Resolución de postulaciones y entregas.** La aceptación múltiple quedó implementada en T-11; continúan pendientes el rechazo individual, el envío de pruebas y sus transiciones de estado.
-- [x] **T-07 — Notificaciones, administración y roles.** Campana de notificaciones, panel de usuarios y niveles pendientes, moderación auditada, promoción exclusiva del owner, cuenta owner inicial y chats limitados a jugadores participantes. Confirmación: `Feat: Panel de administración y cuenta owner`.
-- [ ] **T-08 — Pruebas de integración y recorrido end-to-end.** Probar la inicialización de PostgreSQL desde cero y los flujos completos en un entorno de staging.
-- [ ] **T-09 — Evidencia de entrega final.** Actualizar `docs/TEST_REPORT.md` con resultados del entorno publicado y enlazar frontend/API públicos.
+- [x] **T-25 — Open verification, revisión de entregas y reportes de chat.** Aceptar sin cerrar postulaciones, aceptación automática configurable, entrega de ID pública/video atribuida a un verificador y moderación administrativa; reportes con lectura temporal del chat y suspensiones temporales/permanentes. Confirmación: `Feat: Flujo de verificación, reportes y sanciones`.
 
 ## Criterio para marcar una tarea como hecha
 
