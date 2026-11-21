@@ -187,7 +187,7 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
             <header className="catalog-section-heading"><h2>{section.title}</h2><span>{section.items.length}</span></header>
             {section.items.length ? <section className="levels-grid catalog-levels-grid">{section.items.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyCategory}</p>}
           </section>)}</div>
-          <section className="catalog-category">
+          <section className="catalog-category catalog-being-verified">
             <header className="catalog-section-heading"><h2>{t.beingVerified}</h2><span>{beingVerified.length}</span></header>
             {beingVerified.length ? <section className="levels-grid catalog-levels-grid">{beingVerified.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyCategory}</p>}
           </section>

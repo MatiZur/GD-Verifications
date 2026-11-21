@@ -98,6 +98,14 @@ Comprobaciones de T-21:
 | Filtro `/levels/all` en navegador | **PASS** | Incluye “Siendo verificados” y mantiene “Sin verificar” como valor inicial. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
 
+Comprobaciones de T-22:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd frontend && npm run build` | **PASS** | Vite produjo la compilación de producción. |
+| Catálogo `/levels` en navegador | **PASS** | Se verificó espacio de 28 px entre las categorías anteriores y “Siendo verificados”. |
+| `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
+
 Comprobaciones de T-17:
 
 | Comprobación | Resultado | Alcance |
