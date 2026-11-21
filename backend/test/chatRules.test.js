@@ -23,9 +23,11 @@ test('chat accepts an empty text field only when a supported attachment is prese
 });
 
 test('only the creator and accepted verifiers can access a level group chat', () => {
-  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 1, hasAcceptedVerifiers: true, isAcceptedVerifier: false }), true);
-  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 1, hasAcceptedVerifiers: false, isAcceptedVerifier: false }), false);
-  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 2, hasAcceptedVerifiers: true, isAcceptedVerifier: true }), true);
-  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 2, hasAcceptedVerifiers: true, isAcceptedVerifier: false }), false);
-  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 3, hasAcceptedVerifiers: true, isAcceptedVerifier: false }), false);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 1, userRole: 'USER', hasAcceptedVerifiers: true, isAcceptedVerifier: false }), true);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 1, userRole: 'USER', hasAcceptedVerifiers: false, isAcceptedVerifier: false }), false);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 2, userRole: 'USER', hasAcceptedVerifiers: true, isAcceptedVerifier: true }), true);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 2, userRole: 'USER', hasAcceptedVerifiers: true, isAcceptedVerifier: false }), false);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 3, userRole: 'USER', hasAcceptedVerifiers: true, isAcceptedVerifier: false }), false);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 1, userRole: 'ADMIN', hasAcceptedVerifiers: true, isAcceptedVerifier: false }), false);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 2, userRole: 'OWNER', hasAcceptedVerifiers: true, isAcceptedVerifier: true }), false);
 });

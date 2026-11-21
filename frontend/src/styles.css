@@ -54,6 +54,26 @@ body {
 .about-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 10px; background: rgba(167,139,250,.12); color: var(--accent); font-size: 23px; }
 .about-sections h2 { margin: 18px 0 9px; font: 600 18px 'Space Grotesk'; }
 .about-sections p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.admin-page { width: min(100% - 48px, 1000px); min-height: calc(100vh - 150px); margin: 0 auto; padding: 54px 0 80px; }
+.admin-section { margin-top: 36px; }
+.admin-section h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; font: 700 22px 'Space Grotesk'; }
+.admin-count { display: inline-grid; min-width: 25px; height: 25px; place-items: center; padding: 0 7px; border-radius: 999px; background: rgba(167,139,250,.15); color: #d7caff; font: 700 12px 'DM Sans'; }
+.admin-level-list, .admin-user-list { display: grid; gap: 11px; }
+.admin-level-card { display: grid; grid-template-columns: 160px minmax(0,1fr); gap: 16px; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.035); }
+.admin-level-card > img { width: 160px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; }
+.admin-level-info { min-width: 0; }
+.admin-level-meta, .admin-level-info > p { margin: 4px 0; color: var(--muted); font-size: 12px; }
+.admin-level-info h3 { margin: 8px 0; font: 700 18px 'Space Grotesk'; }
+.admin-level-info h3 a:hover { color: #c4b5fd; }
+.admin-user-row { display: flex; min-width: 0; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.025); }
+.admin-user-row > img, .admin-user-avatar { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%; object-fit: cover; background: #29253a; }
+.admin-user-avatar { display: grid; place-items: center; color: #d7caff; font-weight: 700; }
+.admin-user-info { display: grid; min-width: 0; flex: 1; gap: 3px; }
+.admin-user-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.admin-user-info span { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.admin-role { padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,.07); color: #c7c2d8; font-size: 10px; font-weight: 700; }
+.admin-role-admin { background: rgba(167,139,250,.15); color: #d7caff; }
+.admin-role-owner { background: rgba(255,190,90,.15); color: #ffd28a; }
 @keyframes toast-appear { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes toast-disappear { to { opacity: 0; transform: translateY(8px); visibility: hidden; } }
 .account-menu-trigger {
@@ -555,6 +575,11 @@ footer span {
   .notification-panel { right: -54px; }
   .about-page { width: calc(100% - 32px); padding: 52px 0 64px; }
   .about-sections { grid-template-columns: 1fr; }
+  .admin-page { width: min(100% - 32px, 1000px); padding-top: 35px; }
+  .admin-level-card { grid-template-columns: 1fr; }
+  .admin-level-card > img { width: 100%; max-height: 220px; }
+  .admin-user-row { flex-wrap: wrap; }
+  .admin-user-info { flex-basis: calc(100% - 60px); }
   .account-menu-trigger { min-height: 38px; }
   .account-avatar { width: 28px; height: 28px; flex-basis: 28px; }
   .account-name { max-width: 100px; }

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { pool } from '../config/database.js';
 
 export function authenticateToken(req, res, next) {
   try {
@@ -42,4 +43,17 @@ export function optionalToken(req, _res, next) {
     req.user = null;
   }
   next();
+}
+
+export function requireRole(...allowedRoles) {
+  return async (req, res, next) => {
+    if (!req.user?.id) return res.status(401).json({ error: 'No autenticado' });
+    try {
+      const result = await pool.query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+      if (!result.rows[0]) return res.status(401).json({ error: 'Usuario no encontrado' });
+      req.user.role = result.rows[0].role;
+      if (!allowedRoles.includes(req.user.role)) return res.status(403).json({ error: 'No tenés permisos para realizar esta acción' });
+      next();
+    } catch (error) { next(error); }
+  };
 }

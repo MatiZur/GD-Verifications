@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { pool } from '../config/database.js';
-import { authenticateToken, optionalToken } from '../middleware/auth.js';
+import { authenticateToken, optionalToken, requireRole } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
 import { canCreatorCloseApplications, canCreatorDeleteCancelledLevel, canCreatorMarkLevelVerified, canCreatorRemoveAcceptedVerifier, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
 import { validateApplicationSelection } from '../services/applicationRules.js';
@@ -28,7 +28,7 @@ router.get('/', async (_req, res, next) => {
     const result = await pool.query(
       `SELECT ${levelFields}
        FROM levels l JOIN users u ON u.id = l.creator_id
-       WHERE l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED')
+       WHERE l.status IN ('AVAILABLE', 'IN_PROGRESS', 'VERIFIED')
        ORDER BY l.created_at DESC`
     );
     res.json({ levels: result.rows });
@@ -74,7 +74,7 @@ router.post('/', authenticateToken, async (req, res, next) => {
          creator_id, name, description, difficulty, difficulty_estimate, game_mode,
          showcase_url, minimum_hardest_aredl_id, minimum_hardest_aredl_name, status,
          image_data, image_mime_type
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'AVAILABLE', $10, $11)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'PENDING_REVIEW', $10, $11)
        RETURNING id, creator_id, name, description, difficulty, difficulty_estimate,
                  game_mode, showcase_url, minimum_hardest_aredl_id,
                  minimum_hardest_aredl_name, status, created_at, (image_data IS NOT NULL) AS has_image`,
@@ -126,13 +126,16 @@ router.get('/:id/image', optionalToken, async (req, res, next) => {
     const result = await pool.query(
       `SELECT image_data, image_mime_type, status FROM levels
        WHERE id = $1 AND status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')
-         AND (status <> 'CANCELLED' OR creator_id = $2)`,
+         AND (status <> 'CANCELLED' OR creator_id = $2)
+         AND (status <> 'PENDING_REVIEW' OR creator_id = $2 OR EXISTS (
+           SELECT 1 FROM users staff WHERE staff.id = $2 AND staff.role IN ('ADMIN', 'OWNER')
+         ))`,
       [req.params.id, req.user?.id ?? null]
     );
     if (!result.rows[0]?.image_data) return res.status(404).end();
     res.type(result.rows[0].image_mime_type)
       .set('Cross-Origin-Resource-Policy', 'cross-origin')
-      .set('Cache-Control', result.rows[0].status === 'CANCELLED' ? 'private, no-store' : 'public, max-age=86400')
+      .set('Cache-Control', ['CANCELLED', 'PENDING_REVIEW'].includes(result.rows[0].status) ? 'private, no-store' : 'public, max-age=86400')
       .send(result.rows[0].image_data);
   } catch (error) { next(error); }
 });
@@ -142,13 +145,20 @@ router.get('/:id', optionalToken, async (req, res, next) => {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     const result = await pool.query(
       `SELECT ${levelFields},
-              (l.creator_id = $2 OR EXISTS (
-                SELECT 1 FROM applications participant
-                WHERE participant.level_id = l.id AND participant.verifier_id = $2 AND participant.status = 'ACCEPTED'
-              )) AS is_chat_participant
+              EXISTS (
+                SELECT 1 FROM users requester
+                WHERE requester.id = $2 AND requester.role = 'USER'
+                  AND (l.creator_id = $2 OR EXISTS (
+                    SELECT 1 FROM applications participant
+                    WHERE participant.level_id = l.id AND participant.verifier_id = $2 AND participant.status = 'ACCEPTED'
+                  ))
+              ) AS is_chat_participant
        FROM levels l JOIN users u ON u.id = l.creator_id
        WHERE l.id = $1 AND l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')
-         AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
+         AND (l.status <> 'CANCELLED' OR l.creator_id = $2)
+         AND (l.status <> 'PENDING_REVIEW' OR l.creator_id = $2 OR EXISTS (
+           SELECT 1 FROM users staff WHERE staff.id = $2 AND staff.role IN ('ADMIN', 'OWNER')
+         ))`,
       [req.params.id, req.user?.id ?? null]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Nivel no encontrado' });
@@ -185,15 +195,16 @@ router.get('/:id/chat', authenticateToken, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     const permission = await pool.query(
-      `SELECT l.creator_id,
+      `SELECT l.creator_id, requester.role AS requester_role,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
-       FROM levels l WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
+       FROM levels l JOIN users requester ON requester.id = $2
+       WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     if (!permission.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
-    const { creator_id: creatorId, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
-    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
+    const { creator_id: creatorId, requester_role: userRole, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
+    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, userRole, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
     if (!authorized) return res.json({ authorized: false, messages: [] });
     const participants = await pool.query(
       `SELECT u.id, u.username, u.display_name, u.avatar_url,
@@ -231,15 +242,16 @@ router.post('/:id/messages', authenticateToken, (req, res, next) => {
     if (validationError) return res.status(400).json({ error: validationError });
     if (!req.file && !req.body?.message?.trim()) return res.status(400).json({ error: 'El mensaje necesita texto o un archivo adjunto' });
     const permission = await pool.query(
-      `SELECT l.creator_id,
+      `SELECT l.creator_id, requester.role AS requester_role,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
-       FROM levels l WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
+       FROM levels l JOIN users requester ON requester.id = $2
+       WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     if (!permission.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
-    const { creator_id: creatorId, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
-    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
+    const { creator_id: creatorId, requester_role: userRole, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
+    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, userRole, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
     if (!authorized) return res.status(403).json({ error: 'Solo el creador y los verificadores aceptados pueden usar este chat' });
     const result = await pool.query(
       `INSERT INTO level_messages (level_id, sender_id, message, attachment_data, attachment_mime_type, attachment_name)
@@ -273,14 +285,15 @@ router.get('/:id/messages/:messageId/attachment', authenticateToken, async (req,
   try {
     if (!isLevelId(req.params.id) || !isLevelId(req.params.messageId)) return res.status(404).end();
     const permission = await pool.query(
-      `SELECT l.creator_id,
+      `SELECT l.creator_id, requester.role AS requester_role,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
-       FROM levels l WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
+       FROM levels l JOIN users requester ON requester.id = $2
+       WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     const p = permission.rows[0];
-    if (!p || !canAccessLevelChat({ creatorId: p.creator_id, userId: req.user.id, hasAcceptedVerifiers: p.has_verifiers, isAcceptedVerifier: p.is_verifier })) return res.status(403).end();
+    if (!p || !canAccessLevelChat({ creatorId: p.creator_id, userId: req.user.id, userRole: p.requester_role, hasAcceptedVerifiers: p.has_verifiers, isAcceptedVerifier: p.is_verifier })) return res.status(403).end();
     const result = await pool.query(
       'SELECT attachment_data, attachment_mime_type FROM level_messages WHERE id = $1 AND level_id = $2',
       [req.params.messageId, req.params.id]
@@ -552,7 +565,7 @@ router.patch('/:id/restore', authenticateToken, async (req, res, next) => {
   } finally { client?.release(); }
 });
 
-router.post('/:id/applications', authenticateToken, async (req, res, next) => {
+router.post('/:id/applications', authenticateToken, requireRole('USER'), async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     const result = await pool.query(

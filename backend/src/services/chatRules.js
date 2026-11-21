@@ -22,7 +22,8 @@ export function validateChatAttachment(file) {
   return signatureValid ? null : 'El archivo adjunto no coincide con su formato';
 }
 
-export function canAccessLevelChat({ creatorId, userId, hasAcceptedVerifiers, isAcceptedVerifier }) {
+export function canAccessLevelChat({ creatorId, userId, userRole, hasAcceptedVerifiers, isAcceptedVerifier }) {
+  if (userRole !== 'USER') return false;
   if (String(creatorId) === String(userId)) return Boolean(hasAcceptedVerifiers);
   return Boolean(isAcceptedVerifier);
 }

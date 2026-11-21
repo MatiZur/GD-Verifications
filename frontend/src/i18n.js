@@ -55,6 +55,13 @@ Object.assign(copy.en, {
   levelImageTooLarge: 'The optimized image exceeds 4 MB.'
 });
 
+Object.assign(copy.es, {
+  adminPanel: 'Administración', adminIntro: 'Revisá los niveles nuevos y consultá las cuentas de la comunidad.', adminPlayers: 'Jugadores', adminPendingLevels: 'Niveles pendientes de aprobación', adminNoPlayers: 'Todavía no hay jugadores.', adminNoPendingLevels: 'No hay niveles pendientes de aprobación.', adminPromote: 'Promover a admin', adminPromoting: 'Promoviendo...', adminPromoted: 'Usuario promovido a administrador.', adminApprove: 'Aprobar y publicar', adminReject: 'Rechazar nivel', adminReviewing: 'Guardando revisión...', adminReviewComplete: 'Revisión guardada.', adminAccessDenied: 'Esta sección es exclusiva para administradores y owner.', adminRoleUser: 'Jugador', adminRoleAdmin: 'Admin', adminRoleOwner: 'Owner', adminLevelMode: 'Modo', adminSubmittedBy: 'Enviado por', adminSubmittedAt: 'Enviado', levelPublished: 'Tu nivel se envió para revisión. Te avisaremos cuando se resuelva.'
+});
+Object.assign(copy.en, {
+  adminPanel: 'Administration', adminIntro: 'Review new levels and browse community accounts.', adminPlayers: 'Players', adminPendingLevels: 'Levels awaiting approval', adminNoPlayers: 'There are no players yet.', adminNoPendingLevels: 'There are no levels awaiting approval.', adminPromote: 'Promote to admin', adminPromoting: 'Promoting...', adminPromoted: 'User promoted to administrator.', adminApprove: 'Approve and publish', adminReject: 'Reject level', adminReviewing: 'Saving review...', adminReviewComplete: 'Review saved.', adminAccessDenied: 'This section is only available to administrators and the owner.', adminRoleUser: 'Player', adminRoleAdmin: 'Admin', adminRoleOwner: 'Owner', adminLevelMode: 'Mode', adminSubmittedBy: 'Submitted by', adminSubmittedAt: 'Submitted', levelPublished: 'Your level was submitted for review. We will notify you when it is resolved.'
+});
+
 const errors = {
   'Solo el creador puede marcar el nivel como verificado': 'Only the creator can mark this level as verified',
   'Solo el creador puede cerrar las postulaciones': 'Only the creator can close applications',
@@ -64,6 +71,10 @@ const errors = {
   'Solo el creador puede borrar este nivel': 'Only the creator can delete this level',
   'Solo se pueden borrar niveles cancelados': 'Only cancelled levels can be deleted',
   'El nombre de usuario y la contraseña son obligatorios': 'Username and password are required',
+  'No tenés permisos para realizar esta acción': 'You do not have permission to perform this action',
+  'Elegí una decisión de moderación válida': 'Choose a valid moderation decision',
+  'Este nivel ya fue revisado o no admite esta decisión': 'This level has already been reviewed or does not allow this decision',
+  'Solo se puede promover a administrador a un usuario normal': 'Only a regular user can be promoted to administrator',
   'Solo el creador puede retirar este nivel': 'Only the creator can withdraw this level',
   'Solo se puede retirar un nivel disponible sin verificadores aceptados': 'Only an available level without accepted verifiers can be withdrawn',
   'Solo el creador puede restaurar este nivel': 'Only the creator can restore this level',

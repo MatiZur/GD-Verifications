@@ -141,6 +141,18 @@ Comprobaciones de T-24:
 | Login sin username | **PASS** — HTTP 400 | La API informa que username y contraseña son obligatorios. |
 | `git diff --check` | **PASS** | Sin errores de whitespace. |
 
+Comprobaciones de T-07:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 26 tests, 0 fallos | Incluye autorización de administración, promoción exclusiva del owner, moderación y exclusión de roles de staff del chat. |
+| `cd frontend && npm run build` | **PASS** | Incluye `/admin`, listado de jugadores, revisión pendiente y controles bilingües. |
+| `node --check` en rutas/middleware backend | **PASS** | Sintaxis válida en administración, niveles, autorización y app Express. |
+| Inicio local como `owner` / `owner` | **PASS** | La cuenta inicial responde con rol `OWNER`. Credenciales usadas solo en la base local de desarrollo. |
+| `GET /api/v1/admin/users` y `/admin/levels/pending` autenticado como owner | **PASS** | Devuelven usuarios y niveles pendientes desde PostgreSQL local. |
+| Rutas `/admin/users` y `/admin/levels/pending` sin sesión | **PASS** — HTTP 401 | El middleware bloquea solicitudes sin JWT antes de listar datos. |
+| `git diff --check` | **PASS** | Sin errores de whitespace. |
+
 ## Cobertura actual y límites
 
 - Las pruebas automatizadas actuales no requieren credenciales, PostgreSQL ni acceso a AREDL.

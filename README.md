@@ -2,10 +2,14 @@
 
 Plataforma comunitaria propia para Geometry Dash: perfiles de jugadores y, como objetivo del proyecto, publicación de niveles y su proceso de verificación.
 
-> **Estado del proyecto:** hay una interfaz React bilingüe de inicio, perfiles y catálogo/publicación de niveles; la API Express permite crear/listar/consultar niveles y enviar postulaciones con el requisito de hardest mínimo validado. Aún faltan edición y baja de niveles, resolución/aceptación de postulaciones, entrega de verificaciones, notificaciones y administración. La configuración de despliegue está preparada, pero los servicios públicos aún deben crearse y probarse; clonar el repositorio no significa que ya esté online.
+Link a la página: gd-verifications.matyzur.workers.dev
+
+> **Estado del proyecto:** la interfaz bilingüe incluye perfiles, niveles, actividad, chats, notificaciones y panel administrativo. La API Express con PostgreSQL implementa autenticación, postulaciones, permisos de propietario/admin, moderación y notificaciones. La cuenta owner inicial se crea con la migración 011 y su contraseña debe cambiarse antes de producción. Revisá el informe de pruebas y la sección de despliegue para confirmar el estado de los servicios públicos.
 
 ## Documentación del proyecto
 
+- [Manual de usuario](https://docs.google.com/document/d/1gD1WXD5BR9XZh4fTzxv66P4tTD750u5A9dHY3E0c5O0/edit?usp=sharing)
+- [Manual técnico](https://docs.google.com/document/d/1r_U9tC1NptVyeNYuwHLNbeUf188OKJH1342dwTVY9uU/edit?usp=sharing)
 - [Spec funcional con reglas numeradas](./docs/SPEC.md)
 - [Plan de tareas y estado](./docs/PLAN.md)
 - [Informe de pruebas](./docs/TEST_REPORT.md)
@@ -37,7 +41,10 @@ Plataforma comunitaria propia para Geometry Dash: perfiles de jugadores y, como 
    psql -d gd_verifications -f backend/migrations/008_level_chat.sql
    psql -d gd_verifications -f backend/migrations/009_chat_attachments.sql
    psql -d gd_verifications -f backend/migrations/010_level_applications_open.sql
+   psql -d gd_verifications -f backend/migrations/011_owner_and_moderation.sql
    ```
+
+   La migración 011 crea la cuenta inicial `owner` con contraseña `owner`. Iniciá sesión y cambiá esa contraseña desde el perfil antes de publicar la aplicación; nunca dejes la credencial inicial activa en producción.
 
 2. Copiar `backend/.env.example` a `backend/.env`, completar `DATABASE_URL` y reemplazar `JWT_SECRET` con un secreto aleatorio privado. Luego:
 

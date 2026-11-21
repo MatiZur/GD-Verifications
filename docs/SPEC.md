@@ -21,7 +21,7 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 
 ## Niveles, verificaciones y moderación
 
-15. **Implementada** — Publicar un nivel requiere autenticación y guarda nombre, modalidad (`CLASSIC` o `PLATFORMER`), dificultad estimada `Top N` (N entre 1 y 10000), video de YouTube, descripción opcional y creador. Si se define un hardest mínimo, debe pertenecer a la lista AREDL de la modalidad elegida. Los niveles nuevos quedan `AVAILABLE` y visibles en el catálogo; la moderación previa todavía no está implementada.
+15. **Implementada** — Publicar un nivel requiere autenticación y guarda nombre, modalidad (`CLASSIC` o `PLATFORMER`), dificultad estimada `Top N` (N entre 1 y 10000), video de YouTube, descripción opcional y creador. Si se define un hardest mínimo, debe pertenecer a la lista AREDL de la modalidad elegida. Los niveles nuevos quedan `PENDING_REVIEW` y no aparecen en el catálogo hasta que un admin o el owner los apruebe.
 16. **Planificada** — Solo el creador puede editar su nivel; los cambios no pueden saltarse moderación ni alterar la propiedad.
 17. **Parcial** — Los niveles usan estados definidos: `PENDING_REVIEW`, `AVAILABLE`, `IN_PROGRESS`, `VERIFIED`, `REJECTED` o `CANCELLED`. El backend implementa asignación de verificadores, cierre de postulaciones, retiro condicionado y restauración de niveles cancelados por el creador; también implementa la transición a `VERIFIED` bajo las condiciones de la regla 45. Las demás transiciones siguen pendientes.
 18. **Implementada** — Un usuario autenticado puede postularse una sola vez por nivel disponible; el autor no puede postularse para verificar su propio nivel. Si hay hardest mínimo, el backend compara el puesto AREDL del perfil en la misma modalidad: una posición numéricamente igual o menor (más difícil) cumple el requisito. Sin mínimo, cualquier usuario salvo el autor puede postularse.
@@ -29,7 +29,7 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 20. **Planificada** — Solo el verificador con postulación aceptada puede entregar una prueba; la entrega debe incluir un enlace de video permitido y comenzar `PENDING`.
 21. **Parcial** — El creador puede marcar como verificado un nivel en progreso con al menos un verificador aceptado. El flujo de entregas de prueba y su aprobación/rechazo sigue pendiente.
 22. **Parcial** — La API privada y la campana muestran notificaciones persistentes de postulaciones recibidas/aceptadas, verificaciones aceptadas y mensajes nuevos en chats. Solo el destinatario puede consultarlas o marcarlas como leídas. Otros eventos y notificaciones push quedan pendientes.
-23. **Planificada** — Las acciones administrativas requieren rol `ADMIN`, se auditan en `admin_logs` y no se autorizan solamente ocultando controles en React.
+23. **Implementada** — Admin y owner pueden consultar todos los jugadores y revisar niveles `PENDING_REVIEW`; cada decisión se registra en `admin_logs`. Solo `OWNER` puede promover una cuenta `USER` a `ADMIN`. La API vuelve a comprobar el rol vigente en PostgreSQL.
 24. **Planificada** — Videos se almacenan como URL de YouTube; no se suben archivos de video a Render ni a PostgreSQL.
 
 ## Acceso y despliegue
@@ -72,3 +72,6 @@ Esta especificación distingue lo implementado hoy de las reglas objetivo. **Imp
 60. **Implementada** — El creador puede borrar definitivamente niveles `CANCELLED`; la API comprueba propiedad y estado y elimina sus postulaciones relacionadas en una transacción. La etiqueta Cancelado se muestra en rojo en Niveles creados.
 61. **Implementada** — El inicio de sesión utiliza el nombre de usuario y la contraseña; el email se conserva para el registro y otros usos de cuenta.
 62. **Implementada** — Los menús de idioma y cuenta se cierran al hacer clic fuera de ellos.
+63. **Implementada** — La migración `011_owner_and_moderation.sql` crea o inicializa el usuario `owner` con contraseña inicial `owner` y rol `OWNER`. Esta credencial débil debe cambiarse inmediatamente y antes de exponer la instancia a internet.
+64. **Implementada** — Admin y owner tienen una página para consultar todos los jugadores y niveles pendientes de aprobación. Aprobar publica un nivel (`AVAILABLE`); rechazar lo deja `REJECTED`. Solo owner puede promover usuarios normales a `ADMIN`; las acciones quedan auditadas.
+65. **Implementada** — Las salas, mensajes y adjuntos de chat son accesibles solo a cuentas `USER` que sean creadoras o verificadoras aceptadas. Tener rol `ADMIN` u `OWNER` impide el acceso incluso si la cuenta fue participante previamente.

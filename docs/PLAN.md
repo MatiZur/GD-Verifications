@@ -28,7 +28,7 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 - [x] **T-23 — Restauración, página informativa y avisos.** Restaurar niveles cancelados solo para su creador, restringir su visibilidad, compactar Niveles creados, agregar Acerca de y redirección de logout, y conectar notificaciones persistentes y avisos temporales. Confirmación: `Feat: Restauración y notificaciones de niveles`.
 - [x] **T-24 — Gestión de verificadores, acceso y sesión.** Restringir el botón de chat a participantes, conservar abiertas las postulaciones al aceptar verificadores hasta que el creador las cierre, permitir remover verificadores y borrar niveles cancelados, e iniciar sesión con username. Confirmación: `Feat: Gestión de verificadores y acceso por usuario`.
 - [ ] **T-06 — Resolución de postulaciones y entregas.** La aceptación múltiple quedó implementada en T-11; continúan pendientes el rechazo individual, el envío de pruebas y sus transiciones de estado.
-- [ ] **T-07 — Notificaciones y panel administrativo.** Autorización de rol en backend, moderación y auditoría.
+- [x] **T-07 — Notificaciones, administración y roles.** Campana de notificaciones, panel de usuarios y niveles pendientes, moderación auditada, promoción exclusiva del owner, cuenta owner inicial y chats limitados a jugadores participantes. Confirmación: `Feat: Panel de administración y cuenta owner`.
 - [ ] **T-08 — Pruebas de integración y recorrido end-to-end.** Probar PostgreSQL/migraciones y flujos completos en un entorno de staging.
 - [ ] **T-09 — Evidencia de entrega final.** Actualizar `docs/TEST_REPORT.md` con resultados del entorno publicado y enlazar frontend/API públicos.
 

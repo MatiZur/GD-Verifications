@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react
 import { apiRequest, getAuthToken, saveAuthToken, clearAuthToken } from './services/api';
 import UserProfile from './components/UserProfile';
 import LanguageSelector from './components/LanguageSelector';
+import AdminPage from './components/AdminPage';
 import { AllLevelsPage, LevelsPage, LevelChatPage, LevelDetailsPage, MyActivityPage, RecentVerifications } from './components/Levels';
 import { copy, translateError } from './i18n';
 
@@ -85,7 +86,7 @@ function AuthModal({ language, authMode, form, formError, submitting, onClose, o
       <form className="auth-form" onSubmit={onSubmit}>
         {authMode === 'register' && <label>{t.username}<input type="text" name="username" placeholder={t.usernamePlaceholder} value={form.username} onChange={onChange} minLength={3} maxLength={30} pattern="[a-zA-Z0-9_]+" title={t.usernameTitle} autoComplete="username" required/></label>}
         <label>{authMode === 'login' ? t.username : t.email}<input type={authMode === 'login' ? 'text' : 'email'} name={authMode === 'login' ? 'username' : 'email'} placeholder={authMode === 'login' ? t.usernamePlaceholder : 'you@email.com'} value={authMode === 'login' ? form.username : form.email} onChange={onChange} autoComplete={authMode === 'login' ? 'username' : 'email'} required/></label>
-        <label>{t.password}<input type="password" name="password" placeholder={t.passwordPlaceholder} value={form.password} onChange={onChange} minLength={8} maxLength={72} autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required/></label>
+        <label>{t.password}<input type="password" name="password" placeholder={t.passwordPlaceholder} value={form.password} onChange={onChange} minLength={authMode === 'register' ? 8 : undefined} maxLength={72} autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required/></label>
         {formError && <div className="form-error" role="alert">{formError}</div>}
         <button className="button button-primary auth-submit" type="submit" disabled={submitting}>{submitting ? t.processing : authMode === 'login' ? t.login : t.createAccount}</button>
       </form>
@@ -171,6 +172,7 @@ function AppContent() {
       <nav className="site-nav" aria-label={language === 'es' ? 'Navegación principal' : 'Main navigation'}>
         <Link to="/levels">{t.levels}</Link>
         <Link to="/about">{t.about}</Link>
+        {['ADMIN', 'OWNER'].includes(user?.role) && <Link to="/admin">{t.adminPanel}</Link>}
         {!user && !sessionLoading && <button className="button button-outline" type="button" onClick={() => openAuth('login')}>{t.login}</button>}
         {sessionLoading && <span className="nav-loading">{t.loading}</span>}
         {user && <NotificationBell user={user} language={language}/>}
@@ -209,6 +211,7 @@ function AppContent() {
       </main>
     } />
     <Route path="/about" element={<AboutPage language={language}/>}/>
+    <Route path="/admin" element={<AdminPage language={language} user={user}/>}/>
     <Route path="/user/:username" element={<UserProfile language={language} onChangeLanguage={changeLanguage}/>}/>
     <Route path="/levels" element={<LevelsPage language={language} user={user} sessionLoading={sessionLoading} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
     <Route path="/levels/new" element={<LevelsPage create language={language} user={user} sessionLoading={sessionLoading} onRequireLogin={() => openAuth('login')} onChangeLanguage={changeLanguage}/>}/>
