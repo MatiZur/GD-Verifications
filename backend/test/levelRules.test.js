@@ -70,13 +70,15 @@ test('accepting a verifier preserves the creator-controlled applications state',
   assert.equal(applicationsOpenAfterVerifierAcceptance(false), false);
 });
 
-test('open verification accepts applicants immediately while regular levels keep them pending', () => {
+test('open verification accepts immediately while regular in-progress levels keep applications pending', () => {
   assert.equal(getApplicationStatusForLevel({ openVerification: true }), 'ACCEPTED');
   assert.equal(getApplicationStatusForLevel({ openVerification: false }), 'PENDING');
   assert.equal(canReceiveApplication({ status: 'AVAILABLE', applicationsOpen: true, openVerification: false }), true);
   assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: true, openVerification: true }), true);
-  assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: true, openVerification: false }), false);
+  assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: true, openVerification: false }), true);
+  assert.equal(getApplicationStatusForLevel({ openVerification: false }), 'PENDING');
   assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: false, openVerification: true }), false);
+  assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: false, openVerification: false }), false);
 });
 
 test('a verified level does not close applications on a different available level', () => {

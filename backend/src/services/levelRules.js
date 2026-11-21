@@ -52,9 +52,8 @@ export function getApplicationStatusForLevel({ openVerification }) {
   return openVerification === true ? 'ACCEPTED' : 'PENDING';
 }
 
-export function canReceiveApplication({ status, applicationsOpen, openVerification }) {
-  return applicationsOpen === true
-    && (status === 'AVAILABLE' || (status === 'IN_PROGRESS' && openVerification === true));
+export function canReceiveApplication({ status, applicationsOpen }) {
+  return applicationsOpen === true && ['AVAILABLE', 'IN_PROGRESS'].includes(status);
 }
 
 export function canCreatorWithdrawLevel({ creatorId, userId, status, acceptedVerifierCount }) {

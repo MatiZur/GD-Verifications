@@ -31,6 +31,7 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 - [x] **T-25 — Open verification, revisión de entregas y reportes de chat.** Aceptar sin cerrar postulaciones, aceptación automática configurable, entrega de ID pública/video atribuida a un verificador y moderación administrativa; reportes con lectura temporal del chat y suspensiones temporales/permanentes. Confirmación: `Feat: Flujo de verificación, reportes y sanciones`.
 - [x] **T-26 — Presentación de niveles verificados.** Mostrar el ID público como texto, dejar el enlace a GDBrowser únicamente en el nombre y ocultar hardest mínimo y estado de postulaciones cerradas en detalles verificados.
 - [x] **T-27 — Catálogo compacto, filtros por categoría y diseño adaptable.** Limitar cada categoría a seis tarjetas, enlazar “Ver todos” con sus filtros, abrir el envío de verificación en modal, agregar acceso para publicar en Niveles creados y mejorar la adaptación responsive. Confirmación: `Feat: Catálogo compacto y diseño adaptable`.
+- [x] **T-28 — Postulaciones durante una verificación en progreso.** Permitir nuevas postulaciones mientras el creador no las cierre, tanto en niveles disponibles como en progreso; las normales quedan pendientes y `Open verification` las acepta automáticamente. Confirmación: `Fix: Postulaciones abiertas durante la verificación`.
 
 ## Criterio para marcar una tarea como hecha
 
