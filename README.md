@@ -4,7 +4,7 @@ Plataforma comunitaria para Geometry Dash: perfiles de jugadores, publicación y
 
 Link a la página: https://gd-verifications.matyzur.workers.dev
 
-**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo y publicación moderada de niveles, postulaciones, actividad, chats, notificaciones y panel administrativo. La API Express con PostgreSQL implementa autenticación, permisos por rol y propiedad, moderación auditada y las funciones descritas en esta documentación. La migración 011 crea la cuenta inicial `owner`; cambiá su contraseña antes de exponer el servicio. El frontend está publicado en Cloudflare. El estado de la API y la base de datos depende del despliegue configurado en Render; consultá el informe de pruebas para el alcance verificado.
+**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo y publicación moderada de niveles, postulaciones, actividad, chats, notificaciones y panel administrativo. La API Express con PostgreSQL implementa autenticación, permisos por rol y propiedad, moderación auditada y las funciones descritas en esta documentación. `backend/schema.sql` define el esquema completo y crea la cuenta inicial `owner`; la API lo inicializa al arrancar. Cambiá la contraseña inicial antes de exponer el servicio. El frontend está publicado en Cloudflare. El estado de la API y la base de datos depende del despliegue configurado en Render; consultá el informe de pruebas para el alcance verificado.
 
 ## Documentación del proyecto
 
@@ -28,23 +28,7 @@ Link a la página: https://gd-verifications.matyzur.workers.dev
 - Node.js 20 o superior.
 - PostgreSQL local o accesible.
 
-1. Crear la base `gd_verifications` y ejecutar las migraciones, en orden y una sola vez:
-
-   ```bash
-   psql -d gd_verifications -f backend/migrations/001_initial_schema.sql
-   psql -d gd_verifications -f backend/migrations/002_user_profiles.sql
-   psql -d gd_verifications -f backend/migrations/003_profile_hardest_types.sql
-   psql -d gd_verifications -f backend/migrations/004_user_pronouns_country.sql
-   psql -d gd_verifications -f backend/migrations/005_level_requirements.sql
-   psql -d gd_verifications -f backend/migrations/006_level_images.sql
-   psql -d gd_verifications -f backend/migrations/007_multiple_accepted_applications.sql
-   psql -d gd_verifications -f backend/migrations/008_level_chat.sql
-   psql -d gd_verifications -f backend/migrations/009_chat_attachments.sql
-   psql -d gd_verifications -f backend/migrations/010_level_applications_open.sql
-   psql -d gd_verifications -f backend/migrations/011_owner_and_moderation.sql
-   ```
-
-   La migración 011 crea la cuenta inicial `owner` con contraseña `owner`. Iniciá sesión y cambiá esa contraseña desde el perfil antes de publicar la aplicación; nunca dejes la credencial inicial activa en producción. Admins y owner revisan los niveles nuevos antes de publicarlos; el owner es el único rol que puede promover usuarios a admin.
+1. Crear una base PostgreSQL vacía llamada `gd_verifications` y configurar `DATABASE_URL` en `backend/.env`. Al iniciar la API, `backend/schema.sql` crea automáticamente todas las tablas, restricciones e índices y agrega la cuenta inicial `owner` (`owner` / `owner`). No hace falta ejecutar scripts SQL manualmente. Cambiá esa contraseña desde el perfil antes de exponer la aplicación a internet. Admins y owner revisan los niveles nuevos antes de publicarlos; el owner es el único rol que puede promover usuarios a admin.
 
 2. Copiar `backend/.env.example` a `backend/.env`, completar `DATABASE_URL` y reemplazar `JWT_SECRET` con un secreto aleatorio privado. Luego:
 
@@ -101,7 +85,7 @@ El archivo [render.yaml](./render.yaml) declara un Blueprint con una API Node y 
 
 El Blueprint asigna el plan gratuito al servicio web y el plan PostgreSQL persistente mínimo (`0.1c-256mb`). Según la [página de precios de Render](https://render.com/pricing), ese plan de PostgreSQL figura actualmente a USD 6/mes; el precio puede cambiar. La base gratuita de Render expira a los 30 días, por lo que no se usa para una entrega que deba conservar datos a largo plazo ([límites del plan gratuito](https://render.com/docs/free)).
 
-Después de crear la base, ejecutar las once migraciones SQL de arriba **una sola vez y en orden** contra la base de Render, usando la conexión de PostgreSQL que muestra el Dashboard. La migración 011 crea la cuenta owner inicial; cambiá su contraseña inmediatamente. La API responde `503` en `/api/v1/health` si no puede conectarse a PostgreSQL; las rutas que dependen de tablas requieren que las migraciones estén aplicadas. Copiar la URL pública del servicio para el siguiente paso.
+Después de crear la base PostgreSQL en Render, el primer arranque de la API aplica automáticamente `backend/schema.sql`. Asegurate de que `DATABASE_URL` apunte a una base vacía; si ya existe un esquema parcial o antiguo, creá una base nueva en Render en lugar de borrar datos a ciegas. Revisá los logs del servicio para confirmar el mensaje de inicialización y luego comprobá `/api/v1/health`. El esquema crea la cuenta `owner` con contraseña inicial `owner`: cambiala inmediatamente antes de habilitar el acceso público. Copiá la URL pública de la API para configurar Cloudflare.
 
 ### 2. Frontend en Cloudflare Pages
 

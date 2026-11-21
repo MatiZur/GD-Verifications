@@ -12,7 +12,7 @@
 - La interfaz web está disponible en español e inglés. Todo texto nuevo que vea el usuario debe traducirse a ambos idiomas. Mantener el nombre del producto exactamente como `GD Verifications` en los dos.
 - Comprobar la propiedad de los recursos y los roles en el servidor; ocultar un control en React no constituye autorización.
 - Usar consultas SQL parametrizadas para los datos proporcionados por usuarios. Guardar contraseñas con bcrypt y no devolver nunca sus hashes.
-- Usar migraciones para modificar el esquema de la base de datos y respetar el orden documentado.
+- Para una base nueva, mantener `backend/schema.sql` como inicialización completa e idempotente; se aplica automáticamente al iniciar la API. No agregar ni volver a introducir una cadena de migraciones sin cambiar expresamente este acuerdo.
 - Mantener las pruebas deterministas y sin dependencias de servicios externos, salvo que una prueba de integración las habilite expresamente.
 - Crear una confirmación de Git enfocada por cada tarea terminada. No mezclar tareas que no estén relacionadas.
 

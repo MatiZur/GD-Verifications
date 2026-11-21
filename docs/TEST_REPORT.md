@@ -4,6 +4,8 @@ Fecha de ejecución local: 2026-11-20. Entorno: Node.js 24.22.0; PostgreSQL loca
 
 ## Resultado de esta entrega
 
+Las filas históricas que mencionan migraciones registran comprobaciones realizadas durante el desarrollo anterior; esos archivos ya no forman parte del despliegue. La inicialización vigente es únicamente `backend/schema.sql`, ejecutada por la API al arrancar sobre una base vacía.
+
 | Comprobación | Resultado | Alcance |
 | --- | --- | --- |
 | `cd backend && npm test` | **PASS** — 16 tests, 0 fallos | Tests unitarios puros de registro, niveles, selección múltiple, chat, URL y avatares. |
@@ -156,6 +158,17 @@ Comprobaciones de T-07:
 ## Cobertura actual y límites
 
 - Las pruebas automatizadas actuales no requieren credenciales, PostgreSQL ni acceso a AREDL.
-- Aún no existen pruebas de integración para rutas HTTP, JWT con base real, la secuencia completa de migraciones, solicitudes contra AREDL ni pruebas end-to-end.
+- Aún no existen pruebas de integración para rutas HTTP, JWT con base real, inicialización del esquema contra PostgreSQL/Render, solicitudes contra AREDL ni pruebas end-to-end.
 - El health check se probó previamente contra la base local durante el desarrollo; esto no prueba la base de Render ni la disponibilidad pública.
-- No hay URL pública de Cloudflare Pages o Render confirmada en esta entrega. La validación de publicación queda en T-04/T-09.
+- Según el estado informado por el propietario, el frontend ya está alojado en Cloudflare. La API y la base de Render aún requieren validación pública; queda pendiente en T-04/T-09.
+
+## Comprobaciones del bootstrap desde cero
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 30 tests, 0 fallos | Incluye pruebas estáticas para tablas, columnas, seed owner y repetibilidad del esquema inicial. |
+| `cd frontend && npm run build` | **PASS** | Vite produjo la compilación de producción; no hubo cambios en el frontend. |
+| `node --check backend/src/server.js` y `test/schema.test.js` | **PASS** | Sintaxis válida en el arranque y las pruebas del esquema. |
+| `git diff --check` | **PASS** | Sin errores de whitespace. |
+| `backend/schema.sql` en PostgreSQL WASM en memoria, ejecutado dos veces | **PASS** | Crea las siete tablas y la cuenta `owner` una sola vez; no se conectó ni modificó PostgreSQL local o Render. |
+| Inicialización contra PostgreSQL vacío | **NO EJECUTADA** | No se modificó la base local ni se aplicó el esquema a una base Render. Confirmar en Render con una base nueva. |
