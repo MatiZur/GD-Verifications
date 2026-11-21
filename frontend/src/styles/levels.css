@@ -146,6 +146,8 @@
 .level-card-difficulty { margin: 0; color: #c4b5fd; font-weight: 700; }
 .level-card-creator,
 .level-card-requirement { color: #a5a2b8; font-size: 13px; line-height: 1.5; }
+.verified-by { color: #a5f0c5; }
+.levels-all-link { margin-left: 8px; }
 .level-card-requirement strong { color: #d7caff; }
 .level-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .level-card-actions .button { font-size: 12px; padding: 9px 11px; }

@@ -15,6 +15,11 @@ const levelFields = `
   l.minimum_hardest_aredl_id, l.minimum_hardest_aredl_name,
   (l.image_data IS NOT NULL) AS has_image,
   (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count,
+  CASE WHEN l.status = 'VERIFIED' THEN COALESCE((
+    SELECT json_agg(json_build_object('username', verifier.username, 'display_name', verifier.display_name) ORDER BY a.updated_at, a.id)
+    FROM applications a JOIN users verifier ON verifier.id = a.verifier_id
+    WHERE a.level_id = l.id AND a.status = 'ACCEPTED'
+  ), '[]'::json) ELSE '[]'::json END AS verified_by,
   l.created_at, l.updated_at, u.username AS creator_username, u.display_name AS creator_display_name
 `;
 
@@ -100,6 +105,11 @@ router.get('/applications/mine', authenticateToken, async (req, res, next) => {
               l.id, l.name, l.description, l.game_mode, l.difficulty_estimate, l.showcase_url,
               l.status AS level_status, l.minimum_hardest_aredl_name, l.created_at,
               (l.image_data IS NOT NULL) AS has_image,
+              CASE WHEN l.status = 'VERIFIED' THEN COALESCE((
+                SELECT json_agg(json_build_object('username', verifier.username, 'display_name', verifier.display_name) ORDER BY accepted.updated_at, accepted.id)
+                FROM applications accepted JOIN users verifier ON verifier.id = accepted.verifier_id
+                WHERE accepted.level_id = l.id AND accepted.status = 'ACCEPTED'
+              ), '[]'::json) ELSE '[]'::json END AS verified_by,
               owner.username AS creator_username, owner.display_name AS creator_display_name
        FROM applications a JOIN levels l ON l.id = a.level_id
        JOIN users owner ON owner.id = l.creator_id

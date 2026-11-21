@@ -74,6 +74,17 @@ Comprobaciones de T-19:
 | Catálogo `/levels` en navegador | **PASS** | Las seis categorías aparecen apiladas, la lista completa muestra Ambos / más reciente / sin verificar por defecto y Verificados recientemente queda al final. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
 
+Comprobaciones de T-20:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 18 tests, 0 fallos | Suite unitaria del backend completa. |
+| `cd frontend && npm run build` | **PASS** | Vite produjo la compilación de producción. |
+| Página `/levels/all` en navegador | **PASS** | Lista completa separada de categorías; filtros iniciales: ambos modos, más reciente y sin verificar. |
+| Modal de nivel | **PASS** | El hardest mínimo aparece dentro del modal, junto al botón para postularse; no aparece en las tarjetas. |
+| Niveles verificados | **PASS** | Se muestra el verificador junto al creador en la tarjeta y en los detalles. |
+| `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
+
 Comprobaciones de T-17:
 
 | Comprobación | Resultado | Alcance |

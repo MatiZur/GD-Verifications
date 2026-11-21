@@ -49,6 +49,9 @@ function LevelCard({ level, language, onOpen }) {
   const t = copy[language];
   const modeLabel = level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode;
   const statusLabel = ({ VERIFIED: t.statusVerified, IN_PROGRESS: t.statusInProgress, AVAILABLE: t.statusAvailable, REJECTED: t.activityRejected, CANCELLED: t.activityCancelled, PENDING_REVIEW: t.activityReview }[level.status] || level.status);
+  const verifiedBy = level.status === 'VERIFIED' && Array.isArray(level.verified_by)
+    ? level.verified_by.map((verifier) => verifier.display_name || verifier.username).join(', ')
+    : '';
   return <article className="level-card">
     <a className="level-card-image-link" href={level.showcase_url} aria-label={`${t.openVideo}: ${level.name}`}>
       <img className="level-card-image" src={level.has_image ? apiUrl(`/levels/${level.id}/image`) : youtubeThumbnail(level.showcase_url)} alt={level.name} loading="lazy"/>
@@ -56,8 +59,7 @@ function LevelCard({ level, language, onOpen }) {
     <div className="level-card-top"><span className="level-mode">{modeLabel}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{statusLabel}</span></div>
     <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{level.name}</button>
     <p className="level-card-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
-    <p className="level-card-creator">{t.createdBy} {level.creator_display_name || level.creator_username}</p>
-    {level.minimum_hardest_aredl_name && <p className="level-card-requirement"><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name}</p>}
+    <p className="level-card-creator">{t.createdBy} {level.creator_display_name || level.creator_username}{verifiedBy && <span className="verified-by"> · {t.verifiedBy} {verifiedBy}</span>}</p>
     <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
   </article>;
 }
@@ -93,11 +95,6 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [openLevelId, setOpenLevelId] = useState(null);
-  const [catalogMode, setCatalogMode] = useState('ALL');
-  const [minimumTop, setMinimumTop] = useState('');
-  const [maximumTop, setMaximumTop] = useState('');
-  const [ageOrder, setAgeOrder] = useState('NEWEST');
-  const [verificationStatus, setVerificationStatus] = useState('UNVERIFIED');
   const [form, setForm] = useState({ name: '', game_mode: 'CLASSIC', difficulty_estimate: '', showcase_url: '', description: '', minimum_hardest_aredl_id: '' });
 
   useEffect(() => {
@@ -143,16 +140,6 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
     { key: 'hardest', title: t.hardestLevels, items: [...unverifiedLevels].sort((a, b) => Number(a.difficulty_estimate) - Number(b.difficulty_estimate)) },
     { key: 'easiest', title: t.easiestLevels, items: [...unverifiedLevels].sort((a, b) => Number(b.difficulty_estimate) - Number(a.difficulty_estimate)) }
   ];
-  const allCatalogLevels = levels.filter((level) => {
-    if (catalogMode !== 'ALL' && level.game_mode !== catalogMode) return false;
-    if (minimumTop && Number(level.difficulty_estimate) < Number(minimumTop)) return false;
-    if (maximumTop && Number(level.difficulty_estimate) > Number(maximumTop)) return false;
-    if (verificationStatus === 'UNVERIFIED' && level.status === 'VERIFIED') return false;
-    if (verificationStatus === 'VERIFIED' && level.status !== 'VERIFIED') return false;
-    return true;
-  }).sort((a, b) => ageOrder === 'NEWEST'
-    ? new Date(b.created_at) - new Date(a.created_at)
-    : new Date(a.created_at) - new Date(b.created_at));
   const recentlyVerified = [...levels].filter((level) => level.status === 'VERIFIED')
     .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
   return <main className="levels-page">
@@ -189,6 +176,7 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
       </> : <>
         <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{t.levelsTitle}</h1><p>{t.levelsIntro}</p>
           <Link className="button button-primary" to="/levels/new">{t.newLevel}</Link>
+          <Link className="button button-outline levels-all-link" to="/levels/all">{t.allLevels}</Link>
         </header>
         {notice && <p className="level-success" role="status">{notice}</p>}
         {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : <>
@@ -196,16 +184,6 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
             <header className="catalog-section-heading"><h2>{section.title}</h2><span>{section.items.length}</span></header>
             {section.items.length ? <section className="levels-grid catalog-levels-grid">{section.items.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyCategory}</p>}
           </section>)}</div>
-          <section className="catalog-all-levels">
-            <header className="catalog-section-heading"><div><h2>{t.allLevels}</h2><p>{t.allLevelsIntro}</p></div><span>{allCatalogLevels.length}</span></header>
-            <div className="catalog-filter-panel">
-              <label>{t.modeFilter}<select value={catalogMode} onChange={(event) => setCatalogMode(event.target.value)}><option value="ALL">{t.bothModes}</option><option value="CLASSIC">{t.classicMode}</option><option value="PLATFORMER">{t.platformerMode}</option></select></label>
-              <fieldset className="catalog-difficulty-filter"><legend>{t.difficultyFilter}</legend><label>{t.topFrom}<input type="number" min="1" max="10000" value={minimumTop} onChange={(event) => setMinimumTop(event.target.value)}/></label><label>{t.topTo}<input type="number" min="1" max="10000" value={maximumTop} onChange={(event) => setMaximumTop(event.target.value)}/></label></fieldset>
-              <label>{t.ageFilter}<select value={ageOrder} onChange={(event) => setAgeOrder(event.target.value)}><option value="NEWEST">{t.newestFirst}</option><option value="OLDEST">{t.oldestFirst}</option></select></label>
-              <label>{t.verificationFilter}<select value={verificationStatus} onChange={(event) => setVerificationStatus(event.target.value)}><option value="UNVERIFIED">{t.unverifiedOnly}</option><option value="VERIFIED">{t.verifiedOnly}</option><option value="ALL">{t.allStatuses}</option></select></label>
-            </div>
-            {allCatalogLevels.length ? <section className="levels-grid catalog-levels-grid">{allCatalogLevels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.noFilterMatches}</p>}
-          </section>
           <section className="catalog-category catalog-recently-verified">
             <header className="catalog-section-heading"><h2>{t.recentlyVerified}</h2><span>{recentlyVerified.length}</span></header>
             {recentlyVerified.length ? <section className="levels-grid catalog-levels-grid">{recentlyVerified.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section> : <p className="catalog-empty">{t.emptyVerifiedLevels}</p>}
@@ -215,6 +193,55 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
     </div>
     {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </main>;
+}
+
+function AllLevelsFilters({ levels, language, onOpen }) {
+  const t = copy[language];
+  const [mode, setMode] = useState('ALL');
+  const [minimumTop, setMinimumTop] = useState('');
+  const [maximumTop, setMaximumTop] = useState('');
+  const [ageOrder, setAgeOrder] = useState('NEWEST');
+  const [verificationStatus, setVerificationStatus] = useState('UNVERIFIED');
+  const filteredLevels = levels.filter((level) => {
+    if (mode !== 'ALL' && level.game_mode !== mode) return false;
+    if (minimumTop && Number(level.difficulty_estimate) < Number(minimumTop)) return false;
+    if (maximumTop && Number(level.difficulty_estimate) > Number(maximumTop)) return false;
+    if (verificationStatus === 'UNVERIFIED' && level.status === 'VERIFIED') return false;
+    if (verificationStatus === 'VERIFIED' && level.status !== 'VERIFIED') return false;
+    return true;
+  }).sort((a, b) => ageOrder === 'NEWEST'
+    ? new Date(b.created_at) - new Date(a.created_at)
+    : new Date(a.created_at) - new Date(b.created_at));
+
+  return <>
+    <div className="catalog-filter-panel">
+      <label>{t.modeFilter}<select value={mode} onChange={(event) => setMode(event.target.value)}><option value="ALL">{t.bothModes}</option><option value="CLASSIC">{t.classicMode}</option><option value="PLATFORMER">{t.platformerMode}</option></select></label>
+      <fieldset className="catalog-difficulty-filter"><legend>{t.difficultyFilter}</legend><label>{t.topFrom}<input type="number" min="1" max="10000" value={minimumTop} onChange={(event) => setMinimumTop(event.target.value)}/></label><label>{t.topTo}<input type="number" min="1" max="10000" value={maximumTop} onChange={(event) => setMaximumTop(event.target.value)}/></label></fieldset>
+      <label>{t.ageFilter}<select value={ageOrder} onChange={(event) => setAgeOrder(event.target.value)}><option value="NEWEST">{t.newestFirst}</option><option value="OLDEST">{t.oldestFirst}</option></select></label>
+      <label>{t.verificationFilter}<select value={verificationStatus} onChange={(event) => setVerificationStatus(event.target.value)}><option value="UNVERIFIED">{t.unverifiedOnly}</option><option value="VERIFIED">{t.verifiedOnly}</option><option value="ALL">{t.allStatuses}</option></select></label>
+    </div>
+    {filteredLevels.length ? <section className="levels-grid catalog-levels-grid">{filteredLevels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => onOpen(level.id)}/>)}</section> : <p className="catalog-empty">{t.noFilterMatches}</p>}
+  </>;
+}
+
+export function AllLevelsPage({ language, user, onRequireLogin }) {
+  const t = copy[language];
+  const [levels, setLevels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [openLevelId, setOpenLevelId] = useState(null);
+  useEffect(() => {
+    let active = true;
+    apiRequest('/levels').then((data) => { if (active) setLevels(data.levels); })
+      .catch((loadError) => { if (active) setError(translateError(loadError.message, language)); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [language]);
+  return <main className="levels-page"><div className="levels-content">
+    <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{t.allLevels}</h1><p>{t.allLevelsIntro}</p><Link className="button button-outline" to="/levels">{t.levelCategories}</Link></header>
+    {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : <AllLevelsFilters levels={levels} language={language} onOpen={setOpenLevelId}/>}
+    {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
+  </div></main>;
 }
 
 function ApplicantManagement({ level, language }) {
@@ -420,10 +447,9 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
       <iframe className="level-detail-video" src={youtubeEmbed(level.showcase_url)} title={`${level.name} YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
       <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{({ VERIFIED: t.statusVerified, IN_PROGRESS: t.statusInProgress, AVAILABLE: t.statusAvailable, REJECTED: t.activityRejected, CANCELLED: t.activityCancelled, PENDING_REVIEW: t.activityReview }[level.status] || level.status)}</span></div>
       <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
-      <p>{t.createdBy} {level.creator_display_name || level.creator_username}</p>
+      <p>{t.createdBy} {level.creator_display_name || level.creator_username}{level.status === 'VERIFIED' && level.verified_by?.length > 0 && <span className="verified-by"> · {t.verifiedBy} {level.verified_by.map((verifier) => verifier.display_name || verifier.username).join(', ')}</span>}</p>
       {level.description && <p className="level-detail-description">{level.description}</p>}
-      <p><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p>
-      {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language}/> : <div className="level-apply-section"><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE'}>{applying ? t.savingApplication : t.apply}</button>
+      {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language}/> : <div className="level-apply-section"><p className="level-card-requirement"><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE'}>{applying ? t.savingApplication : t.apply}</button>
         {applicationNotice && <p className="level-success" role="status">{applicationNotice}</p>}{applicationError && <p className="level-error" role="alert">{applicationError}</p>}
       </div>}
       {user && Number(level.accepted_verifier_count) > 0 && <div className="level-chat-action"><Link className="button button-outline level-chat-open-button" to={`/levels/${encodeURIComponent(id)}/chat`}>{t.openLevelChat}</Link></div>}
@@ -452,6 +478,10 @@ function LevelDetailsModal({ levelId, language, user, onRequireLogin, onClose })
 
 function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying, verificationError }) {
   const t = copy[language];
+  const verifiedStatus = kind === 'levels' ? item.status : item.level_status;
+  const verifiedBy = verifiedStatus === 'VERIFIED' && Array.isArray(item.verified_by)
+    ? item.verified_by.map((verifier) => verifier.display_name || verifier.username).join(', ')
+    : '';
   const status = kind === 'levels' ? item.status : item.level_status === 'VERIFIED' ? 'VERIFIED' : item.application_status;
   const statusText = kind === 'levels'
     ? ({ AVAILABLE: t.statusAvailable, IN_PROGRESS: t.statusInProgress, VERIFIED: t.statusVerified, PENDING_REVIEW: t.activityReview, REJECTED: t.activityRejected, CANCELLED: t.activityCancelled }[status] || status)
@@ -463,7 +493,7 @@ function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying,
       <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{item.name}</button>
       <p className="level-card-difficulty">{t.difficultyTop}{item.difficulty_estimate}</p>
       <p>{t.applicationCount}: <strong>{item.application_count}</strong></p>
-      {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
+      <p className="activity-attribution">{t.createdBy} {item.creator_display_name || item.creator_username}{verifiedBy && <span className="verified-by"> · {t.verifiedBy} {verifiedBy}</span>}</p>
       <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button>
         {item.status === 'IN_PROGRESS' && Number(item.accepted_verifier_count) > 0 && <button className="button button-outline" type="button" onClick={() => onMarkVerified(item.id)} disabled={verifying}>{verifying ? t.markingVerified : t.markVerified}</button>}
       </div>
@@ -475,9 +505,8 @@ function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying,
     <a href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><img className="verification-entry-image" src={image} alt={item.name} loading="lazy"/></a>
     <div className="verification-entry-main"><div className="verification-entry-meta"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
       <button className="verification-entry-title" type="button" onClick={onOpen}>{item.name}</button>
-      <p>{t.createdBy} {item.creator_display_name || item.creator_username} · {t.difficultyTop}{item.difficulty_estimate}</p>
+      <p>{t.createdBy} {item.creator_display_name || item.creator_username}{verifiedBy && <span className="verified-by"> · {t.verifiedBy} {verifiedBy}</span>} · {t.difficultyTop}{item.difficulty_estimate}</p>
       <p>{t.appliedAt}: {new Date(item.applied_at).toLocaleDateString(language === 'es' ? 'es-AR' : 'en-US')}</p>
-      {item.minimum_hardest_aredl_name && <p><strong>{t.requiredHardest}:</strong> {item.minimum_hardest_aredl_name}</p>}
       <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
     </div>
   </article>;
