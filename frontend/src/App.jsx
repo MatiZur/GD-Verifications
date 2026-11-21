@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { apiRequest, getAuthToken, saveAuthToken, clearAuthToken } from './services/api';
 import UserProfile from './components/UserProfile';
 import LanguageSelector from './components/LanguageSelector';
-import { LevelsPage, LevelChatPage, LevelDetailsPage, MyActivityPage } from './components/Levels';
+import { LevelsPage, LevelChatPage, LevelDetailsPage, MyActivityPage, RecentVerifications } from './components/Levels';
 import { copy, translateError } from './i18n';
 
 function AuthModal({ language, authMode, form, formError, submitting, onClose, onSubmit, onChange, onSwitch }) {
@@ -116,6 +116,7 @@ export default function App() {
           </div>
           {notice && <div className="notice"><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label={t.closeNotice}>×</button></div>}
         </section>
+        <RecentVerifications language={language} user={user} onRequireLogin={() => openAuth('login')}/>
         <section className="features" id="about">
           <article className="feature-card"><div className="feature-icon">◇</div><h2>{t.publishLevels}</h2><p>{t.publishText}</p></article>
           <article className="feature-card"><div className="feature-icon">◎</div><h2>{t.findVerifiers}</h2><p>{t.findText}</p></article>

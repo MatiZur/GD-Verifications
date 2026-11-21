@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
+import { canCreatorMarkLevelVerified, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
 
 const body = {
   name: 'Example Demon',
@@ -38,6 +38,14 @@ test('minimum hardest comparison treats a lower AREDL position as harder', () =>
   assert.equal(meetsHardestRequirement(80, 50), false);
   assert.equal(meetsHardestRequirement(null, 50), false);
   assert.equal(meetsHardestRequirement(null, null), true);
+});
+
+test('only the creator can verify an in-progress level with accepted verifiers', () => {
+  const valid = { creatorId: '10', userId: 10, status: 'IN_PROGRESS', acceptedVerifierCount: 1 };
+  assert.equal(canCreatorMarkLevelVerified(valid), true);
+  assert.equal(canCreatorMarkLevelVerified({ ...valid, userId: 11 }), false);
+  assert.equal(canCreatorMarkLevelVerified({ ...valid, status: 'AVAILABLE' }), false);
+  assert.equal(canCreatorMarkLevelVerified({ ...valid, acceptedVerifierCount: 0 }), false);
 });
 
 test('level IDs must be valid positive PostgreSQL BIGINT values', () => {

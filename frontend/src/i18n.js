@@ -26,18 +26,24 @@ export const copy = {
 };
 
 Object.assign(copy.es, {
+  levelLists: 'Listas de niveles', recentLevels: 'Recientes', oldestLevels: 'Viejos', hardestLevels: 'Más difíciles', easiestLevels: 'Más fáciles',
+  markVerified: 'Marcar como verificado', markingVerified: 'Guardando...', recentVerificationsTitle: 'Últimas verificaciones', recentVerificationsIntro: 'Los cinco niveles verificados más recientemente por la comunidad.', verifiedLevelsEyebrow: 'VERIFICACIONES COMPLETADAS', emptyVerifiedLevels: 'Todavía no hay niveles verificados.',
   classicMode: 'Clásico',
   difficultyTop: 'Top ~',
   levelImageHelp: 'Elegí una imagen; se recorta al centro a 16:9 y se guarda en JPG de alta calidad (1920×1080, hasta 4 MB). Si no cargás una, usamos la miniatura del video.',
   levelImageTooLarge: 'La imagen optimizada supera 4 MB.'
 });
 Object.assign(copy.en, {
+  levelLists: 'Level lists', recentLevels: 'Recent', oldestLevels: 'Oldest', hardestLevels: 'Hardest', easiestLevels: 'Easiest',
+  markVerified: 'Mark as verified', markingVerified: 'Saving...', recentVerificationsTitle: 'Recent verifications', recentVerificationsIntro: 'The five levels most recently verified by the community.', verifiedLevelsEyebrow: 'COMPLETED VERIFICATIONS', emptyVerifiedLevels: 'There are no verified levels yet.',
   difficultyTop: 'Top ~',
   levelImageHelp: 'Choose an image; it will be center-cropped to 16:9 and saved as a high-quality JPG (1920×1080, up to 4 MB). If omitted, the video thumbnail will be used.',
   levelImageTooLarge: 'The optimized image exceeds 4 MB.'
 });
 
 const errors = {
+  'Solo el creador puede marcar el nivel como verificado': 'Only the creator can mark this level as verified',
+  'El nivel debe estar en progreso y tener al menos un verificador aceptado': 'The level must be in progress and have at least one accepted verifier',
   'Adjuntá una imagen JPG, PNG o WebP, o un video MP4 o WebM': 'Attach a JPG, PNG, or WebP image, or an MP4 or WebM video',
   'La imagen adjunta supera 8 MB': 'The attached image exceeds 8 MB',
   'El video adjunto supera 25 MB': 'The attached video exceeds 25 MB',

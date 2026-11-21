@@ -57,6 +57,14 @@ Comprobaciones de T-16:
 | `cd frontend && npm run build` | **PASS** | Vite compiló el botón de chat y sus estilos adaptables. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
 
+Comprobaciones de T-18:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 18 tests, 0 fallos | Incluye permiso del creador y validación de estado/verificadores aceptados para marcar como verificado. |
+| `cd frontend && npm run build` | **PASS** | Vite compiló filtros, acción de verificación y bloque de landing. |
+| `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
+
 Comprobaciones de T-17:
 
 | Comprobación | Resultado | Alcance |

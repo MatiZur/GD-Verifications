@@ -38,6 +38,12 @@ export function meetsHardestRequirement(playerPosition, requiredPosition) {
   return Number.isInteger(playerPosition) && Number.isInteger(requiredPosition) && playerPosition <= requiredPosition;
 }
 
+export function canCreatorMarkLevelVerified({ creatorId, userId, status, acceptedVerifierCount }) {
+  return String(creatorId) === String(userId)
+    && status === 'IN_PROGRESS'
+    && Number(acceptedVerifierCount) > 0;
+}
+
 export function isLevelId(value) {
   if (typeof value !== 'string' || !/^[1-9]\d{0,18}$/.test(value)) return false;
   return BigInt(value) <= 9223372036854775807n;

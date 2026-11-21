@@ -3,7 +3,7 @@ import multer from 'multer';
 import { pool } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
-import { isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
+import { canCreatorMarkLevelVerified, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
 import { validateApplicationSelection } from '../services/applicationRules.js';
 import { canAccessLevelChat, validateChatAttachment, validateChatMessage } from '../services/chatRules.js';
 
@@ -23,8 +23,21 @@ router.get('/', async (_req, res, next) => {
     const result = await pool.query(
       `SELECT ${levelFields}
        FROM levels l JOIN users u ON u.id = l.creator_id
-       WHERE l.status IN ('AVAILABLE', 'IN_PROGRESS', 'VERIFIED')
+       WHERE l.status IN ('AVAILABLE', 'IN_PROGRESS')
        ORDER BY l.created_at DESC`
+    );
+    res.json({ levels: result.rows });
+  } catch (error) { next(error); }
+});
+
+router.get('/recent-verifications', async (_req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT ${levelFields}
+       FROM levels l JOIN users u ON u.id = l.creator_id
+       WHERE l.status = 'VERIFIED'
+       ORDER BY l.updated_at DESC, l.id DESC
+       LIMIT 5`
     );
     res.json({ levels: result.rows });
   } catch (error) { next(error); }
@@ -292,6 +305,43 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
     await client.query("UPDATE levels SET status = 'IN_PROGRESS', updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [req.params.id]);
     await client.query('COMMIT');
     res.json({ accepted: accepted.rows });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally { client?.release(); }
+});
+
+router.patch('/:id/verify', authenticateToken, async (req, res, next) => {
+  let client;
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const result = await client.query(
+      `SELECT l.id, l.creator_id, l.status,
+              (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count
+       FROM levels l WHERE l.id = $1 FOR UPDATE`,
+      [req.params.id]
+    );
+    const level = result.rows[0];
+    if (!level) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Nivel no encontrado' });
+    }
+    if (String(level.creator_id) !== String(req.user.id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Solo el creador puede marcar el nivel como verificado' });
+    }
+    if (!canCreatorMarkLevelVerified({ creatorId: level.creator_id, userId: req.user.id, status: level.status, acceptedVerifierCount: level.accepted_verifier_count })) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'El nivel debe estar en progreso y tener al menos un verificador aceptado' });
+    }
+    const updated = await client.query(
+      "UPDATE levels SET status = 'VERIFIED', updated_at = NOW() WHERE id = $1 RETURNING id, status, updated_at",
+      [req.params.id]
+    );
+    await client.query('COMMIT');
+    res.json({ level: updated.rows[0] });
   } catch (error) {
     if (client) await client.query('ROLLBACK').catch(() => {});
     next(error);

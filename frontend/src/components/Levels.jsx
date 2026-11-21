@@ -62,6 +62,25 @@ function LevelCard({ level, language, onOpen }) {
   </article>;
 }
 
+export function RecentVerifications({ language, user, onRequireLogin }) {
+  const t = copy[language];
+  const [levels, setLevels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [openLevelId, setOpenLevelId] = useState(null);
+  useEffect(() => {
+    let active = true;
+    apiRequest('/levels/recent-verifications').then((data) => { if (active) setLevels(data.levels); })
+      .catch(() => {}).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+  return <section className="home-verifications">
+    <header className="home-verifications-heading"><p className="profile-eyebrow">{t.verifiedLevelsEyebrow}</p><h2>{t.recentVerificationsTitle}</h2><p>{t.recentVerificationsIntro}</p></header>
+    {loading ? <p className="levels-message">{t.loadingLevels}</p> : levels.length === 0 ? <p className="levels-message">{t.emptyVerifiedLevels}</p> :
+      <section className="levels-grid home-verifications-grid">{levels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section>}
+    {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
+  </section>;
+}
+
 export function LevelsPage({ create = false, language, user, sessionLoading, onRequireLogin, onChangeLanguage }) {
   const t = copy[language];
   const navigate = useNavigate();
@@ -74,6 +93,7 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [openLevelId, setOpenLevelId] = useState(null);
+  const [catalogList, setCatalogList] = useState('classic');
   const [form, setForm] = useState({ name: '', game_mode: 'CLASSIC', difficulty_estimate: '', showcase_url: '', description: '', minimum_hardest_aredl_id: '' });
 
   useEffect(() => {
@@ -109,6 +129,16 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
   }
 
   const minimumLevels = form.game_mode === 'PLATFORMER' ? platformer : classic;
+  const catalogLevels = [...levels].filter((level) => {
+    if (catalogList === 'classic') return level.game_mode === 'CLASSIC';
+    if (catalogList === 'platformer') return level.game_mode === 'PLATFORMER';
+    return true;
+  }).sort((a, b) => {
+    if (catalogList === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+    if (catalogList === 'hardest') return Number(a.difficulty_estimate) - Number(b.difficulty_estimate);
+    if (catalogList === 'easiest') return Number(b.difficulty_estimate) - Number(a.difficulty_estimate);
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
   return <main className="levels-page">
     <div className="levels-content">
       {create ? <>
@@ -145,8 +175,12 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
           <Link className="button button-primary" to="/levels/new">{t.newLevel}</Link>
         </header>
         {notice && <p className="level-success" role="status">{notice}</p>}
-        {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : levels.length === 0 ? <p className="levels-message">{t.emptyLevels}</p> :
-          <section className="levels-grid catalog-levels-grid">{levels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section>}
+        <nav className="level-catalog-filters" aria-label={t.levelLists}>{[
+          ['classic', t.classicMode], ['platformer', t.platformerMode], ['recent', t.recentLevels],
+          ['oldest', t.oldestLevels], ['hardest', t.hardestLevels], ['easiest', t.easiestLevels]
+        ].map(([key, label]) => <button className={catalogList === key ? 'active' : ''} type="button" key={key} aria-pressed={catalogList === key} onClick={() => setCatalogList(key)}>{label}</button>)}</nav>
+        {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : catalogLevels.length === 0 ? <p className="levels-message">{t.emptyLevels}</p> :
+          <section className="levels-grid catalog-levels-grid">{catalogLevels.map((level) => <LevelCard key={level.id} level={level} language={language} onOpen={() => setOpenLevelId(level.id)}/>)}</section>}
       </>}
     </div>
     {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
@@ -331,6 +365,8 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
   const [applicationError, setApplicationError] = useState('');
   const [applicationNotice, setApplicationNotice] = useState(location.state?.notice || '');
   const [applying, setApplying] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -350,17 +386,30 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
     finally { setApplying(false); }
   }
 
+  async function markVerified() {
+    setVerifying(true); setVerificationError('');
+    try {
+      await apiRequest(`/levels/${encodeURIComponent(id)}/verify`, { method: 'PATCH' });
+      setLevel((current) => ({ ...current, status: 'VERIFIED' }));
+    } catch (verifyError) { setVerificationError(translateError(verifyError.message, language)); }
+    finally { setVerifying(false); }
+  }
+
   return <div className="levels-content level-details-content">
     {onClose && <button className="level-details-close" type="button" onClick={onClose} aria-label={t.closeLevelDetails}>×</button>}
     {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : level && <article className="level-detail-card">
       <iframe className="level-detail-video" src={youtubeEmbed(level.showcase_url)} title={`${level.name} YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
-      <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span></div>
+      <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{level.status === 'VERIFIED' ? t.statusVerified : level.status === 'IN_PROGRESS' ? t.statusInProgress : t.statusAvailable}</span></div>
       <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
       <p>{t.createdBy} {level.creator_display_name || level.creator_username}</p>
       {level.description && <p className="level-detail-description">{level.description}</p>}
       <p><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p>
       {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language}/> : <div className="level-apply-section"><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE'}>{applying ? t.savingApplication : t.apply}</button>
         {applicationNotice && <p className="level-success" role="status">{applicationNotice}</p>}{applicationError && <p className="level-error" role="alert">{applicationError}</p>}
+      </div>}
+      {String(level.creator_id) === String(user?.id) && level.status === 'IN_PROGRESS' && Number(level.accepted_verifier_count) > 0 && <div className="level-verify-action">
+        <button className="button button-primary" type="button" onClick={markVerified} disabled={verifying}>{verifying ? t.markingVerified : t.markVerified}</button>
+        {verificationError && <p className="level-error" role="alert">{verificationError}</p>}
       </div>}
       {user && Number(level.accepted_verifier_count) > 0 && <div className="level-chat-action"><Link className="button button-outline level-chat-open-button" to={`/levels/${encodeURIComponent(id)}/chat`}>{t.openLevelChat}</Link></div>}
     </article>}
@@ -388,10 +437,10 @@ function LevelDetailsModal({ levelId, language, user, onRequireLogin, onClose })
 
 function ActivityCard({ item, kind, language, onOpen }) {
   const t = copy[language];
-  const status = kind === 'levels' ? item.status : item.application_status;
+  const status = kind === 'levels' ? item.status : item.level_status === 'VERIFIED' ? 'VERIFIED' : item.application_status;
   const statusText = kind === 'levels'
     ? ({ AVAILABLE: t.statusAvailable, IN_PROGRESS: t.statusInProgress, VERIFIED: t.statusVerified, PENDING_REVIEW: t.activityReview, REJECTED: t.activityRejected, CANCELLED: t.activityCancelled }[status] || status)
-    : ({ PENDING: t.activityPending, ACCEPTED: t.activityAccepted, REJECTED: t.activityRejected, WITHDRAWN: t.activityWithdrawn }[status] || status);
+    : ({ PENDING: t.activityPending, ACCEPTED: t.activityAccepted, REJECTED: t.activityRejected, WITHDRAWN: t.activityWithdrawn, VERIFIED: t.statusVerified }[status] || status);
   const image = item.has_image ? apiUrl(`/levels/${item.id}/image`) : youtubeThumbnail(item.showcase_url);
   if (kind === 'levels') return <article className="created-level-card">
     <a className="created-level-image-link" href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><img className="created-level-image" src={image} alt={item.name} loading="lazy"/></a>
