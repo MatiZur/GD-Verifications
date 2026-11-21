@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canCreatorCloseApplications, canCreatorDeleteCancelledLevel, canCreatorMarkLevelVerified, canCreatorRemoveAcceptedVerifier, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
+import { applicationsOpenAfterVerifierAcceptance, canCreatorCloseApplications, canCreatorDeleteCancelledLevel, canCreatorMarkLevelVerified, canCreatorRemoveAcceptedVerifier, canCreatorRestoreLevel, canCreatorWithdrawLevel, canReceiveApplication, getApplicationStatusForLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
 
 const body = {
   name: 'Example Demon',
@@ -63,6 +63,20 @@ test('only the creator can explicitly close applications on an available or in-p
   assert.equal(canCreatorCloseApplications({ ...valid, applicationsOpen: false }), false);
   assert.equal(canCreatorCloseApplications({ ...valid, status: 'IN_PROGRESS', acceptedVerifierCount: 1 }), true);
   assert.equal(canCreatorCloseApplications({ ...valid, status: 'VERIFIED' }), false);
+});
+
+test('accepting a verifier preserves the creator-controlled applications state', () => {
+  assert.equal(applicationsOpenAfterVerifierAcceptance(true), true);
+  assert.equal(applicationsOpenAfterVerifierAcceptance(false), false);
+});
+
+test('open verification accepts applicants immediately while regular levels keep them pending', () => {
+  assert.equal(getApplicationStatusForLevel({ openVerification: true }), 'ACCEPTED');
+  assert.equal(getApplicationStatusForLevel({ openVerification: false }), 'PENDING');
+  assert.equal(canReceiveApplication({ status: 'AVAILABLE', applicationsOpen: true, openVerification: false }), true);
+  assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: true, openVerification: true }), true);
+  assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: true, openVerification: false }), false);
+  assert.equal(canReceiveApplication({ status: 'IN_PROGRESS', applicationsOpen: false, openVerification: true }), false);
 });
 
 test('only the creator can restore a cancelled level without accepted verifiers', () => {

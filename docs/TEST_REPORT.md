@@ -2,6 +2,18 @@
 
 Fecha de ejecución local: 2026-11-20. Entorno: Node.js 24.22.0; PostgreSQL local disponible durante el desarrollo.
 
+## Cambios locales T-25 (2026-11-21; pendientes de desplegar)
+
+| Comprobación | Resultado | Alcance |
+| --- | --- | --- |
+| `cd backend && npm test` | **PASS** — 38 tests, 0 fallos | Incluye preservación de postulaciones abiertas, aceptación automática, validación de entregas, moderación de reportes, acceso de staff solo con caso activo y suspensión de actividades protegidas. |
+| `cd frontend && npm run build` | **PASS** | Compilación con formularios de entrega/reporte y colas de administración bilingües. |
+| `node --check` en rutas, middleware, servidor y servicio de suspensiones | **PASS** | Sintaxis válida. |
+| `git diff --check` | **PASS** | Sin errores de whitespace. |
+| Ejecución de `backend/schema.sql` contra PostgreSQL | **NO EJECUTADA** | No se aplicó el nuevo esquema a la base alojada; se aplicará al reiniciar la API después del despliegue. No se realizaron cambios en Render desde este entorno. |
+
+Estas comprobaciones son locales y no prueban el despliegue de los nuevos flujos en Render/Cloudflare. La publicación requiere subir los cambios y verificar allí los casos de aceptación, revisión, reportes y expiración de suspensiones.
+
 ## Resultado de esta entrega
 
 Las filas históricas que mencionan migraciones registran comprobaciones realizadas durante el desarrollo anterior; esos archivos ya no forman parte del despliegue. La inicialización vigente es únicamente `backend/schema.sql`, ejecutada por la API al arrancar sobre una base vacía.

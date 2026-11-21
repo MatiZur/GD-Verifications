@@ -1,6 +1,5 @@
--- Esquema completo para una base PostgreSQL nueva.
--- Se ejecuta automáticamente al iniciar la API y puede repetirse sin borrar datos.
--- Para una instancia con tablas anteriores o incompletas, crear una base vacía nueva.
+-- Esquema completo e idempotente. La API lo aplica al iniciar sin borrar datos.
+-- Las columnas incrementales se agregan con IF NOT EXISTS; no se usa una cadena de migraciones.
 
 BEGIN;
 
@@ -24,7 +23,10 @@ CREATE TABLE IF NOT EXISTS users (
   discord_username VARCHAR(32),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   pronouns VARCHAR(40),
-  country VARCHAR(80)
+  country VARCHAR(80),
+  banned_at TIMESTAMPTZ,
+  ban_until TIMESTAMPTZ,
+  ban_reason TEXT
 );
 
 CREATE TABLE IF NOT EXISTS levels (
@@ -51,7 +53,8 @@ CREATE TABLE IF NOT EXISTS levels (
   image_data BYTEA,
   image_mime_type VARCHAR(20)
     CHECK (image_mime_type IS NULL OR image_mime_type IN ('image/jpeg', 'image/webp')),
-  applications_open BOOLEAN NOT NULL DEFAULT FALSE
+  applications_open BOOLEAN NOT NULL DEFAULT FALSE,
+  open_verification BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS applications (
@@ -85,7 +88,33 @@ CREATE TABLE IF NOT EXISTS verification_submissions (
   status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
     CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
   admin_comment TEXT,
-  submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  public_level_id VARCHAR(30)
+);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_until TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT;
+ALTER TABLE levels ADD COLUMN IF NOT EXISTS open_verification BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE verification_submissions ADD COLUMN IF NOT EXISTS public_level_id VARCHAR(30);
+
+CREATE TABLE IF NOT EXISTS temporary_level_ban_snapshots (
+  level_id BIGINT PRIMARY KEY REFERENCES levels(id) ON DELETE CASCADE,
+  previous_status VARCHAR(30) NOT NULL,
+  previous_applications_open BOOLEAN NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat_reports (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  level_id BIGINT NOT NULL REFERENCES levels(id) ON DELETE CASCADE,
+  reporter_id BIGINT NOT NULL REFERENCES users(id),
+  reported_user_id BIGINT NOT NULL REFERENCES users(id),
+  reason TEXT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'DISMISSED', 'ACTIONED')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_by BIGINT REFERENCES users(id),
+  resolved_at TIMESTAMPTZ,
+  ban_until TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS admin_logs (
@@ -130,6 +159,12 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_created
   ON notifications(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_level_messages_level_created
   ON level_messages(level_id, created_at, id);
+CREATE INDEX IF NOT EXISTS idx_verification_submissions_pending
+  ON verification_submissions(status, submitted_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_verification_one_pending_per_level
+  ON verification_submissions(level_id) WHERE status = 'PENDING';
+CREATE INDEX IF NOT EXISTS idx_chat_reports_status_created
+  ON chat_reports(status, created_at DESC);
 
 INSERT INTO users (username, email, password_hash, role)
 VALUES (

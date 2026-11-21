@@ -44,6 +44,19 @@ export function canCreatorMarkLevelVerified({ creatorId, userId, status, accepte
     && Number(acceptedVerifierCount) > 0;
 }
 
+export function applicationsOpenAfterVerifierAcceptance(currentValue) {
+  return currentValue === true;
+}
+
+export function getApplicationStatusForLevel({ openVerification }) {
+  return openVerification === true ? 'ACCEPTED' : 'PENDING';
+}
+
+export function canReceiveApplication({ status, applicationsOpen, openVerification }) {
+  return applicationsOpen === true
+    && (status === 'AVAILABLE' || (status === 'IN_PROGRESS' && openVerification === true));
+}
+
 export function canCreatorWithdrawLevel({ creatorId, userId, status, acceptedVerifierCount }) {
   return String(creatorId) === String(userId)
     && status === 'AVAILABLE'

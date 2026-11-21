@@ -30,4 +30,6 @@ test('only the creator and accepted verifiers can access a level group chat', ()
   assert.equal(canAccessLevelChat({ creatorId: '1', userId: 3, userRole: 'USER', hasAcceptedVerifiers: true, isAcceptedVerifier: false }), false);
   assert.equal(canAccessLevelChat({ creatorId: '1', userId: 1, userRole: 'ADMIN', hasAcceptedVerifiers: true, isAcceptedVerifier: false }), false);
   assert.equal(canAccessLevelChat({ creatorId: '1', userId: 2, userRole: 'OWNER', hasAcceptedVerifiers: true, isAcceptedVerifier: true }), false);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 1, userRole: 'ADMIN', hasAcceptedVerifiers: true, isAcceptedVerifier: false, hasActiveReport: true }), true);
+  assert.equal(canAccessLevelChat({ creatorId: '1', userId: 1, userRole: 'OWNER', hasAcceptedVerifiers: true, isAcceptedVerifier: false, hasActiveReport: false }), false);
 });

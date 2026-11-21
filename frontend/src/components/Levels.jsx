@@ -21,6 +21,12 @@ function youtubeEmbed(url) {
   } catch { return ''; }
 }
 
+function LevelTitle({ level, language, className, onOpen }) {
+  return level.status === 'VERIFIED' && level.gd_level_id
+    ? <a className={className} href={`https://gdbrowser.com/${encodeURIComponent(level.gd_level_id)}`}>{level.name}</a>
+    : onOpen ? <button className={className} type="button" onClick={onOpen}>{level.name}</button> : <span className={className}>{level.name}</span>;
+}
+
 function AredlMinimumPicker({ levels, value, onChange, t }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -58,7 +64,7 @@ function LevelCard({ level, language, onOpen }) {
       <img className="level-card-image" src={level.has_image ? apiUrl(`/levels/${level.id}/image`) : youtubeThumbnail(level.showcase_url)} alt={level.name} loading="lazy"/>
     </a>
     <div className="level-card-top"><span className="level-mode">{modeLabel}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{statusLabel}</span></div>
-    <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{level.name}</button>
+    <LevelTitle level={level} language={language} className="level-card-title level-card-open-title" onOpen={onOpen}/>
     <p className="level-card-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
     <p className="level-card-creator">{t.createdBy} {level.creator_display_name || level.creator_username}{verifiedBy && <span className="verified-by"> · {t.verifiedBy} {verifiedBy}</span>}</p>
     <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
@@ -96,7 +102,7 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [openLevelId, setOpenLevelId] = useState(null);
-  const [form, setForm] = useState({ name: '', game_mode: 'CLASSIC', difficulty_estimate: '', showcase_url: '', description: '', minimum_hardest_aredl_id: '' });
+  const [form, setForm] = useState({ name: '', game_mode: 'CLASSIC', difficulty_estimate: '', showcase_url: '', description: '', minimum_hardest_aredl_id: '', open_verification: false });
 
   useEffect(() => {
     let active = true;
@@ -160,6 +166,7 @@ export function LevelsPage({ create = false, language, user, sessionLoading, onR
             </div>
             <AredlMinimumPicker levels={minimumLevels} value={form.minimum_hardest_aredl_id} onChange={(value) => setForm((current) => ({ ...current, minimum_hardest_aredl_id: value }))} t={t}/>
             <label className="level-field">{t.youtubeShowcase}<input type="url" name="showcase_url" value={form.showcase_url} onChange={updateField} placeholder="https://youtu.be/..." maxLength={2048} required/></label>
+            <label className="level-open-verification"><input type="checkbox" name="open_verification" checked={form.open_verification} onChange={(event) => setForm((current) => ({ ...current, open_verification: event.target.checked }))}/><span><strong>{t.openVerification}</strong><small>{t.openVerificationHelp}</small></span></label>
             <label className="level-field">{t.levelImage}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={async (event) => {
               const file = event.target.files?.[0]; if (!file) return;
               if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setFormError(t.levelImageType); event.target.value = ''; return; }
@@ -332,6 +339,12 @@ function LevelChat({ levelId, language, user }) {
   const [message, setMessage] = useState('');
   const [attachment, setAttachment] = useState(null);
   const [participants, setParticipants] = useState([]);
+  const [canSend, setCanSend] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportedUserId, setReportedUserId] = useState('');
+  const [reportReason, setReportReason] = useState('');
+  const [reporting, setReporting] = useState(false);
+  const [reportNotice, setReportNotice] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -346,6 +359,7 @@ function LevelChat({ levelId, language, user }) {
         const data = await apiRequest(`/levels/${encodeURIComponent(levelId)}/chat`);
         if (!active) return;
         setAuthorized(data.authorized);
+        setCanSend(data.can_send === true);
         setParticipants(data.participants || []);
         setMessages((current) => current.length === data.messages.length && String(current.at(-1)?.id || '') === String(data.messages.at(-1)?.id || '') ? current : data.messages);
         if (!data.authorized && pollRef.current) { window.clearInterval(pollRef.current); pollRef.current = null; }
@@ -379,6 +393,17 @@ function LevelChat({ levelId, language, user }) {
     finally { setSending(false); }
   }
 
+  async function submitReport(event) {
+    event.preventDefault(); setReporting(true); setError(''); setReportNotice('');
+    try {
+      await apiRequest(`/levels/${encodeURIComponent(levelId)}/chat-reports`, {
+        method: 'POST', body: JSON.stringify({ reported_user_id: reportedUserId, reason: reportReason })
+      });
+      setReportNotice(t.reportSent); setReportReason(''); setReportOpen(false);
+    } catch (reportError) { setError(translateError(reportError.message, language)); }
+    finally { setReporting(false); }
+  }
+
   if (!user) return <p className="levels-message">{t.signInToUseChat}</p>;
   if (loading) return <p className="levels-message">{t.loadingChat}</p>;
   if (!authorized) return <p className="levels-message level-error">{t.chatNotParticipant}</p>;
@@ -386,7 +411,15 @@ function LevelChat({ levelId, language, user }) {
     <header className="level-chat-heading"><div><h2>{t.levelChat}</h2><p>{t.levelChatAudience}</p><div className="chat-participants" aria-label={t.chatParticipants}>{participants.map((participant) => <Link className="chat-participant" key={participant.id} to={`/user/${encodeURIComponent(participant.username)}`}>
       {participant.avatar_url ? <img src={participant.avatar_url} alt=""/> : <span>{(participant.display_name || participant.username).slice(0, 1).toUpperCase()}</span>}
       <span>{participant.display_name || participant.username}<small>{participant.participant_role === 'CREATOR' ? t.levelCreator : t.verifierRole}</small></span>
-    </Link>)}</div></div></header>
+    </Link>)}</div></div>{canSend && <button className="button button-outline chat-report-button" type="button" onClick={() => setReportOpen((current) => !current)}>{reportOpen ? t.cancel : t.reportChat}</button>}</header>
+    {reportOpen && canSend && <form className="chat-report-form" onSubmit={submitReport}>
+      <label>{t.reportParticipant}<select value={reportedUserId} onChange={(event) => setReportedUserId(event.target.value)} required>
+        <option value="">—</option>{participants.filter((participant) => String(participant.id) !== String(user.id)).map((participant) => <option key={participant.id} value={participant.id}>{participant.display_name || participant.username}</option>)}
+      </select></label>
+      <label>{t.reportReason}<textarea value={reportReason} onChange={(event) => setReportReason(event.target.value)} minLength={5} maxLength={1000} required placeholder={t.reportReasonPlaceholder}/></label>
+      <button className="button button-primary" type="submit" disabled={reporting}>{reporting ? t.processing : t.sendReport}</button>
+    </form>}
+    {reportNotice && <p className="level-success" role="status">{reportNotice}</p>}
     <div className="level-chat-messages" aria-live="polite">
       {messages.length === 0 ? <p className="level-chat-empty">{t.chatEmpty}</p> : messages.map((item) => {
         const ownMessage = String(item.sender_id) === String(user.id);
@@ -399,13 +432,13 @@ function LevelChat({ levelId, language, user }) {
       })}<div ref={endRef}/>
     </div>
     {error && <p className="level-error" role="alert">{error}</p>}
-    <form className="level-chat-form" onSubmit={sendMessage}>
+    {canSend && <form className="level-chat-form" onSubmit={sendMessage}>
       <textarea value={message} onChange={(event) => setMessage(event.target.value)} maxLength={2000} rows={2} placeholder={t.chatPlaceholder} aria-label={t.chatPlaceholder}/>
       <label className="button button-outline chat-attachment-button">{t.chatAttach}<input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" onChange={(event) => setAttachment(event.target.files?.[0] || null)} hidden/></label>
       {attachment && <span className="chat-attachment-name">{attachment.name}<button type="button" onClick={() => setAttachment(null)} aria-label={t.removeAttachment}>×</button></span>}
       <button className="button button-primary" type="submit" disabled={sending || (!message.trim() && !attachment)}>{sending ? t.chatSending : t.chatSend}</button>
-    </form>
-    <p className="chat-upload-help">{t.chatAttachmentHelp}</p>
+    </form>}
+    {canSend ? <p className="chat-upload-help">{t.chatAttachmentHelp}</p> : <p className="chat-upload-help">{t.adminReviewChatReadOnly}</p>}
   </section>;
 }
 
@@ -456,8 +489,11 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
     if (!user) { onRequireLogin(); return; }
     setApplying(true); setApplicationError(''); setApplicationNotice('');
     try {
-      await apiRequest(`/levels/${encodeURIComponent(id)}/applications`, { method: 'POST', body: JSON.stringify({}) });
-      setApplicationNotice(t.applySuccess);
+      const data = await apiRequest(`/levels/${encodeURIComponent(id)}/applications`, { method: 'POST', body: JSON.stringify({}) });
+      if (data.application?.status === 'ACCEPTED') {
+        setLevel((current) => ({ ...current, status: 'IN_PROGRESS', is_chat_participant: true, accepted_verifier_count: Number(current.accepted_verifier_count || 0) + 1 }));
+        setApplicationNotice(t.openApplicationAccepted);
+      } else setApplicationNotice(t.applySuccess);
     } catch (applyError) { setApplicationError(translateError(applyError.message, language)); }
     finally { setApplying(false); }
   }
@@ -467,7 +503,9 @@ function LevelDetailsView({ id, language, user, onRequireLogin, onClose }) {
     {loading ? <p className="levels-message">{t.loadingLevels}</p> : error ? <p className="levels-message level-error">{error}</p> : level && <article className="level-detail-card">
       <iframe className="level-detail-video" src={youtubeEmbed(level.showcase_url)} title={`${level.name} YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
       <div className="level-card-top"><span className="level-mode">{level.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className={`level-status status-${level.status.toLowerCase()}`}>{({ VERIFIED: t.statusVerified, IN_PROGRESS: t.statusInProgress, AVAILABLE: t.statusAvailable, REJECTED: t.activityRejected, CANCELLED: t.activityCancelled, PENDING_REVIEW: t.activityReview }[level.status] || level.status)}</span></div>
-      <h1>{level.name}</h1><p className="level-detail-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
+      <h1><LevelTitle level={level} className="level-detail-title"/></h1><p className="level-detail-difficulty">{t.difficultyTop}{level.difficulty_estimate}</p>
+      {level.gd_level_id && <p>{t.gdLevelId}: <a href={`https://gdbrowser.com/${encodeURIComponent(level.gd_level_id)}`}>{level.gd_level_id}</a></p>}
+      {level.open_verification && <p className="open-verification-badge">{t.openVerificationStatus}</p>}
       <p>{t.createdBy} {level.creator_display_name || level.creator_username}{level.status === 'VERIFIED' && level.verified_by?.length > 0 && <span className="verified-by"> · {t.verifiedBy} {level.verified_by.map((verifier) => verifier.display_name || verifier.username).join(', ')}</span>}</p>
       {level.description && <p className="level-detail-description">{level.description}</p>}
       {String(level.creator_id) === String(user?.id) ? <ApplicantManagement level={level} language={language} onLevelUpdate={(changes) => setLevel((current) => ({ ...current, ...changes }))}/> : <div className="level-apply-section"><p className="level-card-requirement"><strong>{t.requiredHardest}:</strong> {level.minimum_hardest_aredl_name || t.noRequirement}</p><button className="button button-primary" type="button" onClick={apply} disabled={applying || level.status !== 'AVAILABLE' || level.applications_open === false}>{applying ? t.savingApplication : level.applications_open === false ? t.applicationsClosed : t.apply}</button>
@@ -514,6 +552,52 @@ function ActivityLevelImage({ item, image }) {
   return src ? <img className="created-level-image" src={src} alt={item.name} loading="lazy"/> : <span className="created-level-image-placeholder" aria-hidden="true"/>;
 }
 
+function VerificationSubmissionForm({ item, language, onSubmit, submitting }) {
+  const t = copy[language];
+  const [open, setOpen] = useState(false);
+  const [accepted, setAccepted] = useState([]);
+  const [verifierId, setVerifierId] = useState('');
+  const [publicLevelId, setPublicLevelId] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  async function openForm() {
+    if (open) { setOpen(false); return; }
+    setOpen(true);
+    if (accepted.length) return;
+    setLoading(true); setLoadError('');
+    try {
+      const data = await apiRequest(`/levels/${encodeURIComponent(item.id)}/applications`);
+      const list = (data.applications || []).filter((application) => application.status === 'ACCEPTED');
+      setAccepted(list);
+      setVerifierId(String(list[0]?.verifier_id || list[0]?.id || ''));
+    } catch (error) { setLoadError(translateError(error.message, language)); }
+    finally { setLoading(false); }
+  }
+  async function submit(event) {
+    event.preventDefault();
+    const success = await onSubmit(item.id, { verifier_id: verifierId, public_level_id: publicLevelId.trim(), video_url: videoUrl.trim() });
+    if (success) setOpen(false);
+  }
+  if (item.verification_pending) return <p className="level-success" role="status">{t.verificationPending}</p>;
+  return <div className="verification-submission-control">
+    <button className="button button-outline" type="button" onClick={openForm} disabled={submitting}>{open ? t.cancel : t.markVerified}</button>
+    {open && <form className="verification-submission-form" onSubmit={submit}>
+      {loading ? <p>{t.loading}</p> : <>
+        {accepted.length === 0 ? <p className="level-error">{t.noApplicants}</p> : <>
+          <label>{t.chooseVerifier}<select value={verifierId} onChange={(event) => setVerifierId(event.target.value)} required>
+            {accepted.map((application) => <option key={application.id} value={application.verifier_id}>{application.display_name || application.username}</option>)}
+          </select></label>
+          <label>{t.publicLevelId}<input value={publicLevelId} onChange={(event) => setPublicLevelId(event.target.value)} inputMode="numeric" pattern="[0-9]{1,30}" maxLength={30} required/></label>
+          <label>{t.verificationVideo}<input type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="https://youtu.be/..." maxLength={2048} required/></label>
+          <button className="button button-primary" type="submit" disabled={submitting}>{submitting ? t.markingVerified : t.submitForReview}</button>
+        </>}
+      </>}
+      {loadError && <p className="level-error" role="alert">{loadError}</p>}
+    </form>}
+  </div>;
+}
+
 function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying, verificationError, onCloseApplications, onWithdraw, onRestore, onDelete, actionBusy, actionError }) {
   const t = copy[language];
   const verifiedStatus = kind === 'levels' ? item.status : item.level_status;
@@ -528,12 +612,12 @@ function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying,
   if (kind === 'levels') return <article className="created-level-card">
     <a className="created-level-image-link" href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><ActivityLevelImage item={item} image={image}/></a>
     <div className="created-level-content"><div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className={`level-status${status === 'CANCELLED' ? ' status-cancelled' : ''}`}>{statusText}</span></div>
-      <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{item.name}</button>
+      <LevelTitle level={item} language={language} className="level-card-title level-card-open-title" onOpen={onOpen}/>
       <p className="level-card-difficulty">{t.difficultyTop}{item.difficulty_estimate}</p>
       <p>{t.applicationCount}: <strong>{item.application_count}</strong></p>
       <p className="activity-attribution">{t.createdBy} {item.creator_display_name || item.creator_username}{verifiedBy && <span className="verified-by"> · {t.verifiedBy} {verifiedBy}</span>}</p>
       <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button>
-        {item.status === 'IN_PROGRESS' && Number(item.accepted_verifier_count) > 0 && <button className="button button-outline" type="button" onClick={() => onMarkVerified(item.id)} disabled={verifying}>{verifying ? t.markingVerified : t.markVerified}</button>}
+        {item.status === 'IN_PROGRESS' && Number(item.accepted_verifier_count) > 0 && <VerificationSubmissionForm item={item} language={language} onSubmit={onMarkVerified} submitting={verifying}/>}
         {['AVAILABLE', 'IN_PROGRESS'].includes(item.status) && item.applications_open !== false && <button className="button button-outline" type="button" onClick={() => onCloseApplications(item.id)} disabled={actionBusy}>{actionBusy ? t.savingLevelAction : t.closeApplications}</button>}
         {item.status === 'AVAILABLE' && Number(item.accepted_verifier_count) === 0 && <button className="button button-outline level-withdraw-button" type="button" onClick={() => onWithdraw(item.id)} disabled={actionBusy}>{actionBusy ? t.savingLevelAction : t.withdrawLevel}</button>}
         {item.status === 'CANCELLED' && <button className="button button-primary" type="button" onClick={() => onRestore(item.id)} disabled={actionBusy}>{actionBusy ? t.restoringLevel : t.restoreLevel}</button>}
@@ -547,7 +631,7 @@ function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying,
   return <article className="verification-entry">
     <a href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><img className="verification-entry-image" src={image} alt={item.name} loading="lazy"/></a>
     <div className="verification-entry-main"><div className="verification-entry-meta"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
-      <button className="verification-entry-title" type="button" onClick={onOpen}>{item.name}</button>
+      <LevelTitle level={{ ...item, status: item.level_status }} language={language} className="verification-entry-title" onOpen={onOpen}/>
       <p>{t.createdBy} {item.creator_display_name || item.creator_username}{verifiedBy && <span className="verified-by"> · {t.verifiedBy} {verifiedBy}</span>} · {t.difficultyTop}{item.difficulty_estimate}</p>
       <p>{t.appliedAt}: {new Date(item.applied_at).toLocaleDateString(language === 'es' ? 'es-AR' : 'en-US')}</p>
       <div className="level-card-actions"><button className="button button-primary" type="button" onClick={onOpen}>{t.levelDetails}</button></div>
@@ -576,12 +660,13 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
     else setLoading(false);
     return () => { active = false; };
   }, [user, endpoint, kind, language]);
-  async function markLevelVerified(levelId) {
+  async function markLevelVerified(levelId, submission) {
     setVerifyingId(String(levelId)); setVerificationError(''); setVerificationErrorId(null);
     try {
-      await apiRequest(`/levels/${encodeURIComponent(levelId)}/verify`, { method: 'PATCH' });
-      setItems((current) => current.map((item) => String(item.id) === String(levelId) ? { ...item, status: 'VERIFIED' } : item));
-    } catch (verifyError) { setVerificationError(translateError(verifyError.message, language)); setVerificationErrorId(String(levelId)); }
+      await apiRequest(`/levels/${encodeURIComponent(levelId)}/verification-submissions`, { method: 'POST', body: JSON.stringify(submission) });
+      setItems((current) => current.map((item) => String(item.id) === String(levelId) ? { ...item, verification_pending: true } : item));
+      return true;
+    } catch (verifyError) { setVerificationError(translateError(verifyError.message, language)); setVerificationErrorId(String(levelId)); return false; }
     finally { setVerifyingId(null); }
   }
   async function closeApplications(levelId) {

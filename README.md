@@ -4,7 +4,7 @@ Plataforma comunitaria para Geometry Dash: perfiles de jugadores, publicación y
 
 Link a la página: https://gd-verifications.matyzur.workers.dev
 
-**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo y publicación moderada de niveles, postulaciones, actividad, chats, notificaciones y panel administrativo. La API Express con PostgreSQL implementa autenticación, permisos por rol y propiedad, moderación auditada y las funciones descritas en esta documentación. `backend/schema.sql` define el esquema completo y crea la cuenta inicial `owner`; la API lo inicializa al arrancar. Cambiá la contraseña inicial antes de exponer el servicio. El frontend está publicado en Cloudflare. El estado de la API y la base de datos depende del despliegue configurado en Render; consultá el informe de pruebas para el alcance verificado.
+**Estado del proyecto:** la interfaz bilingüe incluye perfiles, catálogo, postulaciones, actividad, chats, notificaciones y administración. La API Express con PostgreSQL implementa autenticación, permisos, Open verification, revisión administrativa de pruebas y reportes de chat con suspensiones. `backend/schema.sql` mantiene el esquema completo idempotente y la cuenta inicial `owner`; la API lo aplica al arrancar. El propietario informa que el frontend está publicado en Cloudflare y la API/base en Render; la disponibilidad pública debe comprobarse para cada entrega.
 
 ## Documentación del proyecto
 
@@ -55,6 +55,8 @@ API health check: <http://localhost:3000/api/v1/health>
 - `GET /api/v1/levels/:id` y `POST /api/v1/levels` (Bearer token): consulta y publicación de niveles con modalidad, Top estimado, video de YouTube y requisito AREDL mínimo opcional.
 - `POST /api/v1/levels/:id/applications` (Bearer token): postulación como verificador. El backend valida que el hardest del perfil cumpla el mínimo y corresponda a la modalidad.
 - `/api/v1/levels/:id/chat` y `/messages`: chat y adjuntos limitados al creador y verificadores aceptados; las cuentas admin y owner no tienen acceso.
+- `POST /api/v1/levels/:id/verification-submissions`: entrega de ID pública, video de YouTube y verificador aceptado; admin/owner resuelven la cola en `/api/v1/admin/verification-submissions/pending`.
+- `POST /api/v1/levels/:id/chat-reports`: reporte de otro participante; un caso abierto habilita lectura administrativa del chat. `/api/v1/admin/chat-reports` permite descartarlo o suspender al usuario.
 - `/api/v1/notifications`: consulta y actualización de notificaciones propias.
 - `/api/v1/admin/users` y `/api/v1/admin/levels/pending`: administración de jugadores y niveles pendientes, restringida a admins y owner. `PATCH /api/v1/admin/levels/:id/review` aprueba o rechaza con auditoría; `PATCH /api/v1/admin/users/:id/promote` es exclusivo del owner.
 - `GET /api/v1/users/aredl/extremes`: listas AREDL que alimentan los selectores de hardest.

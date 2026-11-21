@@ -62,6 +62,35 @@ Object.assign(copy.en, {
   adminPanel: 'Administration', adminIntro: 'Review new levels and browse community accounts.', adminPlayers: 'Players', adminPendingLevels: 'Levels awaiting approval', adminNoPlayers: 'There are no players yet.', adminNoPendingLevels: 'There are no levels awaiting approval.', adminPromote: 'Promote to admin', adminPromoting: 'Promoting...', adminPromoted: 'User promoted to administrator.', adminApprove: 'Approve and publish', adminReject: 'Reject level', adminReviewing: 'Saving review...', adminReviewComplete: 'Review saved.', adminAccessDenied: 'This section is only available to administrators and the owner.', adminRoleUser: 'Player', adminRoleAdmin: 'Admin', adminRoleOwner: 'Owner', adminLevelMode: 'Mode', adminSubmittedBy: 'Submitted by', adminSubmittedAt: 'Submitted', levelPublished: 'Your level was submitted for review. We will notify you when it is resolved.'
 });
 
+Object.assign(copy.es, {
+  openVerification: 'Verificación abierta', openVerificationHelp: 'Las postulaciones se aceptan automáticamente al enviarse.', openApplicationAccepted: 'Te aceptaste automáticamente como verificador; ya podés coordinar en el chat.', adminReviewChatReadOnly: 'El equipo de administración puede leer este chat mientras revisa el caso.',
+  publicLevelId: 'ID pública del nivel', verificationVideo: 'Video de verificación (YouTube)',
+  submitForReview: 'Enviar a administración', verificationPending: 'Verificación pendiente de revisión administrativa.',
+  verificationSubmitted: 'La prueba se envió a administración para revisión.', chooseVerifier: 'Verificador aceptado',
+  reportChat: 'Reportar en este chat', reportParticipant: 'Participante', reportReason: 'Motivo del reporte',
+  reportReasonPlaceholder: 'Contá brevemente qué pasó (5 a 1000 caracteres).', sendReport: 'Enviar reporte', reportSent: 'Reporte enviado. Administración revisará el caso.',
+  adminVerificationQueue: 'Verificaciones pendientes', adminNoPendingVerifications: 'No hay verificaciones pendientes.',
+  adminReportQueue: 'Reportes de chats activos', adminNoReports: 'No hay reportes activos.', adminDismissReport: 'Descartar caso',
+  adminBanUser: 'Suspender usuario', adminBanDays: 'Días de suspensión', adminPermanentBan: 'Permanente',
+  adminOpenReportChat: 'Revisar chat', adminVerificationFor: 'Verificación de', adminPublicLevelId: 'ID pública',
+  adminVerificationVideo: 'Video enviado', adminVerificationReviewed: 'Entrega de verificación revisada.', adminReportResolved: 'Caso resuelto.', adminBannedUser: 'Suspendido', adminBanExpires: 'hasta',
+  openVerificationStatus: 'Verificación abierta', gdLevelId: 'ID pública de GD'
+});
+Object.assign(copy.en, {
+  openVerification: 'Open verification', openVerificationHelp: 'Applications are accepted automatically when submitted.', openApplicationAccepted: 'You were accepted automatically as a verifier; you can coordinate in the chat now.', adminReviewChatReadOnly: 'Admins can read this chat while the case is under review.',
+  publicLevelId: 'Public level ID', verificationVideo: 'Verification video (YouTube)',
+  submitForReview: 'Submit to admins', verificationPending: 'Verification is pending admin review.',
+  verificationSubmitted: 'The verification was submitted for admin review.', chooseVerifier: 'Accepted verifier',
+  reportChat: 'Report someone in this chat', reportParticipant: 'Participant', reportReason: 'Report reason',
+  reportReasonPlaceholder: 'Briefly describe what happened (5 to 1,000 characters).', sendReport: 'Submit report', reportSent: 'Report submitted. The team will review this case.',
+  adminVerificationQueue: 'Pending verifications', adminNoPendingVerifications: 'There are no pending verifications.',
+  adminReportQueue: 'Active chat reports', adminNoReports: 'There are no active reports.', adminDismissReport: 'Dismiss case',
+  adminBanUser: 'Ban user', adminBanDays: 'Ban duration (days)', adminPermanentBan: 'Permanent',
+  adminOpenReportChat: 'Review chat', adminVerificationFor: 'Verification for', adminPublicLevelId: 'Public ID',
+  adminVerificationVideo: 'Submitted video', adminVerificationReviewed: 'Verification submission reviewed.', adminReportResolved: 'Case resolved.', adminBannedUser: 'Banned', adminBanExpires: 'until',
+  openVerificationStatus: 'Open verification', gdLevelId: 'Public GD level ID'
+});
+
 const errors = {
   'Solo el creador puede marcar el nivel como verificado': 'Only the creator can mark this level as verified',
   'Solo el creador puede cerrar las postulaciones': 'Only the creator can close applications',
@@ -122,6 +151,22 @@ const errors = {
   'El mensaje no puede estar vacío': 'Message cannot be empty',
   'El mensaje no puede superar los 2000 caracteres': 'Message cannot exceed 2,000 characters',
   'Solo el creador y los verificadores aceptados pueden usar este chat': 'Only the creator and accepted verifiers can use this chat',
+  'La verificación ahora debe enviarse a revisión administrativa': 'Verifications must now be submitted for admin review',
+  'La razón debe tener entre 5 y 1000 caracteres': 'The reason must be between 5 and 1,000 characters',
+  'No podés reportarte a vos mismo': 'You cannot report yourself',
+  'Solo los participantes del chat pueden reportar a otro participante': 'Only chat participants can report someone else in the chat',
+  'El acceso administrativo al chat es de solo lectura': 'Administrative chat access is read-only',
+  'Elegí un verificador aceptado para esta entrega': 'Choose an accepted verifier for this submission',
+  'Ingresá una ID pública de Geometry Dash válida': 'Enter a valid public Geometry Dash ID',
+  'Ingresá un enlace HTTPS válido de YouTube para la verificación': 'Enter a valid HTTPS YouTube verification link',
+  'Solo el creador puede enviar la verificación de un nivel en progreso': 'Only the creator can submit verification for a level in progress',
+  'Este nivel ya tiene una verificación pendiente de revisión': 'This level already has a verification pending review',
+  'Tu cuenta está suspendida y no puede realizar esta acción': 'Your account is suspended and cannot perform this action',
+  'La duración debe ser entre 1 y 3650 días o permanente': 'Duration must be 1–3,650 days or permanent',
+  'El usuario ya tiene una suspensión activa': 'The user already has an active ban',
+  'Solo se puede suspender una cuenta de jugador': 'Only a player account can be banned',
+  'El reporte ya fue resuelto o no existe': 'The report has already been resolved or does not exist',
+  'Esta entrega ya fue resuelta o el nivel ya no está en progreso': 'This submission was resolved already or the level is no longer in progress',
 };
 
 export function translateError(message, language) {

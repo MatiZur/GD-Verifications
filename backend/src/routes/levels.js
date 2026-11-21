@@ -1,24 +1,26 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { pool } from '../config/database.js';
-import { authenticateToken, optionalToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, optionalToken, requireActiveUser, requireRole } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
-import { canCreatorCloseApplications, canCreatorDeleteCancelledLevel, canCreatorMarkLevelVerified, canCreatorRemoveAcceptedVerifier, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
+import { applicationsOpenAfterVerifierAcceptance, canCreatorCloseApplications, canCreatorDeleteCancelledLevel, canCreatorRemoveAcceptedVerifier, canCreatorRestoreLevel, canCreatorWithdrawLevel, canReceiveApplication, getApplicationStatusForLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
 import { validateApplicationSelection } from '../services/applicationRules.js';
 import { canAccessLevelChat, validateChatAttachment, validateChatMessage } from '../services/chatRules.js';
+import { validateVerificationSubmission } from '../services/verificationRules.js';
+import { validateChatReport } from '../services/chatReportRules.js';
 
 const router = Router();
 const chatUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 } }).single('attachment');
 const levelFields = `
   l.id, l.creator_id, l.name, l.description, l.gd_level_id, l.difficulty,
-  l.difficulty_estimate, l.game_mode, l.showcase_url, l.status, l.applications_open,
+  l.difficulty_estimate, l.game_mode, l.showcase_url, l.status, l.applications_open, l.open_verification,
   l.minimum_hardest_aredl_id, l.minimum_hardest_aredl_name,
   (l.image_data IS NOT NULL) AS has_image,
   (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count,
   CASE WHEN l.status = 'VERIFIED' THEN COALESCE((
-    SELECT json_agg(json_build_object('username', verifier.username, 'display_name', verifier.display_name) ORDER BY a.updated_at, a.id)
-    FROM applications a JOIN users verifier ON verifier.id = a.verifier_id
-    WHERE a.level_id = l.id AND a.status = 'ACCEPTED'
+    SELECT json_agg(json_build_object('username', verifier.username, 'display_name', verifier.display_name) ORDER BY submission.submitted_at DESC)
+    FROM verification_submissions submission JOIN users verifier ON verifier.id = submission.verifier_id
+    WHERE submission.level_id = l.id AND submission.status = 'APPROVED'
   ), '[]'::json) ELSE '[]'::json END AS verified_by,
   l.created_at, l.updated_at, u.username AS creator_username, u.display_name AS creator_display_name
 `;
@@ -48,7 +50,7 @@ router.get('/recent-verifications', async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
-router.post('/', authenticateToken, async (req, res, next) => {
+router.post('/', authenticateToken, requireActiveUser, async (req, res, next) => {
   try {
     const body = req.body ?? {};
     let list = [];
@@ -73,13 +75,13 @@ router.post('/', authenticateToken, async (req, res, next) => {
       `INSERT INTO levels (
          creator_id, name, description, difficulty, difficulty_estimate, game_mode,
          showcase_url, minimum_hardest_aredl_id, minimum_hardest_aredl_name, status,
-         image_data, image_mime_type
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'PENDING_REVIEW', $10, $11)
+         image_data, image_mime_type, open_verification
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'PENDING_REVIEW', $10, $11, $12)
        RETURNING id, creator_id, name, description, difficulty, difficulty_estimate,
                  game_mode, showcase_url, minimum_hardest_aredl_id,
                  minimum_hardest_aredl_name, status, created_at, (image_data IS NOT NULL) AS has_image`,
       [req.user.id, body.name.trim(), body.description?.trim() || null, `Top ${estimate}`, estimate,
-        body.game_mode, body.showcase_url.trim(), minimum?.id ?? null, minimum?.name ?? null, imageData, imageMimeType]
+        body.game_mode, body.showcase_url.trim(), minimum?.id ?? null, minimum?.name ?? null, imageData, imageMimeType, body.open_verification === true]
     );
     res.status(201).json({ level: result.rows[0] });
   } catch (error) { next(error); }
@@ -89,7 +91,8 @@ router.get('/mine', authenticateToken, async (req, res, next) => {
   try {
     const result = await pool.query(
       `SELECT ${levelFields},
-              (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id) AS application_count
+              (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id) AS application_count,
+              EXISTS (SELECT 1 FROM verification_submissions submission WHERE submission.level_id = l.id AND submission.status = 'PENDING') AS verification_pending
        FROM levels l JOIN users u ON u.id = l.creator_id
        WHERE l.creator_id = $1 ORDER BY l.created_at DESC`,
       [req.user.id]
@@ -102,13 +105,13 @@ router.get('/applications/mine', authenticateToken, async (req, res, next) => {
   try {
     const result = await pool.query(
       `SELECT a.id AS application_id, a.status AS application_status, a.created_at AS applied_at,
-              l.id, l.name, l.description, l.game_mode, l.difficulty_estimate, l.showcase_url,
+              l.id, l.gd_level_id, l.name, l.description, l.game_mode, l.difficulty_estimate, l.showcase_url,
               l.status AS level_status, l.applications_open, l.minimum_hardest_aredl_name, l.created_at,
               (l.image_data IS NOT NULL) AS has_image,
               CASE WHEN l.status = 'VERIFIED' THEN COALESCE((
-                SELECT json_agg(json_build_object('username', verifier.username, 'display_name', verifier.display_name) ORDER BY accepted.updated_at, accepted.id)
-                FROM applications accepted JOIN users verifier ON verifier.id = accepted.verifier_id
-                WHERE accepted.level_id = l.id AND accepted.status = 'ACCEPTED'
+                SELECT json_agg(json_build_object('username', verifier.username, 'display_name', verifier.display_name) ORDER BY submission.submitted_at DESC)
+                FROM verification_submissions submission JOIN users verifier ON verifier.id = submission.verifier_id
+                WHERE submission.level_id = l.id AND submission.status = 'APPROVED'
               ), '[]'::json) ELSE '[]'::json END AS verified_by,
               owner.username AS creator_username, owner.display_name AS creator_display_name
        FROM applications a JOIN levels l ON l.id = a.level_id
@@ -175,7 +178,7 @@ router.get('/:id/applications', authenticateToken, async (req, res, next) => {
       return res.status(403).json({ error: 'Solo el creador puede ver las postulaciones de este nivel' });
     }
     const result = await pool.query(
-      `SELECT a.id, a.status, a.created_at AS applied_at,
+      `SELECT a.id, a.verifier_id, a.status, a.created_at AS applied_at,
               u.username, u.display_name, u.avatar_url, u.pronouns, u.country, u.gd_username,
               l.game_mode,
               CASE WHEN l.game_mode = 'PLATFORMER' THEN u.hardest_platformer_aredl_name
@@ -191,20 +194,51 @@ router.get('/:id/applications', authenticateToken, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-router.get('/:id/chat', authenticateToken, async (req, res, next) => {
+router.post('/:id/chat-reports', authenticateToken, requireActiveUser, requireRole('USER'), async (req, res, next) => {
+  try {
+    if (!isLevelId(req.params.id) || !isLevelId(String(req.body?.reported_user_id ?? ''))) {
+      return res.status(400).json({ error: 'Elegí un participante válido para reportar' });
+    }
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+    const result = await pool.query(
+      `SELECT l.creator_id,
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS reporter_is_verifier,
+              (l.creator_id = $3 OR EXISTS (
+                SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $3 AND a.status = 'ACCEPTED'
+              )) AS target_is_participant
+       FROM levels l WHERE l.id = $1 AND l.status <> 'CANCELLED'`,
+      [req.params.id, req.user.id, req.body.reported_user_id]
+    );
+    const level = result.rows[0];
+    if (!level) return res.status(404).json({ error: 'Nivel no encontrado' });
+    const reporterIsParticipant = String(level.creator_id) === String(req.user.id) || level.reporter_is_verifier;
+    const reportError = validateChatReport({ reporterId: req.user.id, reportedUserId: req.body.reported_user_id, reason, reporterIsParticipant, targetIsParticipant: level.target_is_participant });
+    if (reportError) return res.status(403).json({ error: reportError });
+    const created = await pool.query(
+      `INSERT INTO chat_reports (level_id, reporter_id, reported_user_id, reason)
+       VALUES ($1, $2, $3, $4) RETURNING id, level_id, status, created_at`,
+      [req.params.id, req.user.id, req.body.reported_user_id, reason]
+    );
+    res.status(201).json({ report: created.rows[0] });
+  } catch (error) { next(error); }
+});
+
+router.get('/:id/chat', authenticateToken, requireActiveUser, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     const permission = await pool.query(
       `SELECT l.creator_id, requester.role AS requester_role,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
-              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier,
+              EXISTS (SELECT 1 FROM chat_reports cr WHERE cr.level_id = l.id AND cr.status = 'OPEN') AS has_active_report
        FROM levels l JOIN users requester ON requester.id = $2
        WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     if (!permission.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
-    const { creator_id: creatorId, requester_role: userRole, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
-    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, userRole, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
+    const { creator_id: creatorId, requester_role: userRole, has_verifiers: hasVerifiers, is_verifier: isVerifier, has_active_report: hasActiveReport } = permission.rows[0];
+    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, userRole, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier, hasActiveReport });
     if (!authorized) return res.json({ authorized: false, messages: [] });
     const participants = await pool.query(
       `SELECT u.id, u.username, u.display_name, u.avatar_url,
@@ -226,11 +260,11 @@ router.get('/:id/chat', authenticateToken, async (req, res, next) => {
        WHERE m.level_id = $1 ORDER BY m.created_at DESC, m.id DESC LIMIT 100`,
       [req.params.id]
     );
-    res.json({ authorized: true, participants: participants.rows, messages: result.rows.reverse() });
+    res.json({ authorized: true, can_send: userRole === 'USER', participants: participants.rows, messages: result.rows.reverse() });
   } catch (error) { next(error); }
 });
 
-router.post('/:id/messages', authenticateToken, (req, res, next) => {
+router.post('/:id/messages', authenticateToken, requireActiveUser, (req, res, next) => {
   chatUpload(req, res, (uploadError) => {
     if (uploadError) return res.status(400).json({ error: uploadError.code === 'LIMIT_FILE_SIZE' ? 'El archivo supera el límite de 25 MB' : 'No se pudo procesar el archivo adjunto' });
     next();
@@ -244,15 +278,17 @@ router.post('/:id/messages', authenticateToken, (req, res, next) => {
     const permission = await pool.query(
       `SELECT l.creator_id, requester.role AS requester_role,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
-              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier,
+              EXISTS (SELECT 1 FROM chat_reports cr WHERE cr.level_id = l.id AND cr.status = 'OPEN') AS has_active_report
        FROM levels l JOIN users requester ON requester.id = $2
        WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     if (!permission.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
-    const { creator_id: creatorId, requester_role: userRole, has_verifiers: hasVerifiers, is_verifier: isVerifier } = permission.rows[0];
-    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, userRole, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier });
+    const { creator_id: creatorId, requester_role: userRole, has_verifiers: hasVerifiers, is_verifier: isVerifier, has_active_report: hasActiveReport } = permission.rows[0];
+    const authorized = canAccessLevelChat({ creatorId, userId: req.user.id, userRole, hasAcceptedVerifiers: hasVerifiers, isAcceptedVerifier: isVerifier, hasActiveReport });
     if (!authorized) return res.status(403).json({ error: 'Solo el creador y los verificadores aceptados pueden usar este chat' });
+    if (userRole !== 'USER') return res.status(403).json({ error: 'El acceso administrativo al chat es de solo lectura' });
     const result = await pool.query(
       `INSERT INTO level_messages (level_id, sender_id, message, attachment_data, attachment_mime_type, attachment_name)
        VALUES ($1, $2, $3, $4, $5, $6)
@@ -281,19 +317,20 @@ router.post('/:id/messages', authenticateToken, (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-router.get('/:id/messages/:messageId/attachment', authenticateToken, async (req, res, next) => {
+router.get('/:id/messages/:messageId/attachment', authenticateToken, requireActiveUser, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id) || !isLevelId(req.params.messageId)) return res.status(404).end();
     const permission = await pool.query(
       `SELECT l.creator_id, requester.role AS requester_role,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
-              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
+              EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier,
+              EXISTS (SELECT 1 FROM chat_reports cr WHERE cr.level_id = l.id AND cr.status = 'OPEN') AS has_active_report
        FROM levels l JOIN users requester ON requester.id = $2
        WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     const p = permission.rows[0];
-    if (!p || !canAccessLevelChat({ creatorId: p.creator_id, userId: req.user.id, userRole: p.requester_role, hasAcceptedVerifiers: p.has_verifiers, isAcceptedVerifier: p.is_verifier })) return res.status(403).end();
+    if (!p || !canAccessLevelChat({ creatorId: p.creator_id, userId: req.user.id, userRole: p.requester_role, hasAcceptedVerifiers: p.has_verifiers, isAcceptedVerifier: p.is_verifier, hasActiveReport: p.has_active_report })) return res.status(403).end();
     const result = await pool.query(
       'SELECT attachment_data, attachment_mime_type FROM level_messages WHERE id = $1 AND level_id = $2',
       [req.params.messageId, req.params.id]
@@ -304,7 +341,7 @@ router.get('/:id/messages/:messageId/attachment', authenticateToken, async (req,
   } catch (error) { next(error); }
 });
 
-router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
+router.patch('/:id/applications', authenticateToken, requireActiveUser, async (req, res, next) => {
   const applicationIds = req.body?.application_ids;
   const validationError = validateApplicationSelection(applicationIds);
   if (validationError) return res.status(400).json({ error: validationError });
@@ -314,7 +351,7 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     client = await pool.connect();
     await client.query('BEGIN');
-    const levelResult = await client.query('SELECT creator_id, name, status FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const levelResult = await client.query('SELECT creator_id, name, status, applications_open FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
     const level = levelResult.rows[0];
     if (!level) {
       await client.query('ROLLBACK');
@@ -330,7 +367,12 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
     }
     const selected = await client.query(
       `SELECT id, status FROM applications
-       WHERE level_id = $1 AND id = ANY($2::bigint[]) FOR UPDATE`,
+       WHERE level_id = $1 AND id = ANY($2::bigint[])
+         AND EXISTS (
+           SELECT 1 FROM users candidate
+           WHERE candidate.id = applications.verifier_id
+             AND (candidate.banned_at IS NULL OR (candidate.ban_until IS NOT NULL AND candidate.ban_until <= NOW()))
+         ) FOR UPDATE`,
       [req.params.id, applicationIds]
     );
     if (selected.rows.length !== applicationIds.length || selected.rows.some((application) => application.status !== 'PENDING')) {
@@ -343,7 +385,10 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
        RETURNING id, verifier_id, status, updated_at`,
       [req.params.id, applicationIds]
     );
-    await client.query("UPDATE levels SET status = 'IN_PROGRESS', updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [req.params.id]);
+    await client.query(
+      "UPDATE levels SET status = 'IN_PROGRESS', applications_open = $2, updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'",
+      [req.params.id, applicationsOpenAfterVerifierAcceptance(level.applications_open)]
+    );
     await client.query(
       `INSERT INTO notifications (user_id, title, message, type, related_level_id)
        SELECT verifier_id, 'Postulación aceptada', $1, 'APPLICATION_ACCEPTED', $2
@@ -358,6 +403,45 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
   } finally { client?.release(); }
 });
 
+router.patch('/:id/verify', authenticateToken, (req, res) => res.status(410).json({ error: 'La verificación ahora debe enviarse a revisión administrativa' }));
+
+router.post('/:id/verification-submissions', authenticateToken, requireActiveUser, async (req, res, next) => {
+  let client;
+  try {
+    if (!isLevelId(req.params.id) || !isLevelId(String(req.body?.verifier_id ?? ''))) return res.status(400).json({ error: 'Elegí un verificador aceptado para esta entrega' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const result = await client.query('SELECT id, creator_id, name, status FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const level = result.rows[0];
+    if (!level) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nivel no encontrado' }); }
+    if (String(level.creator_id) !== String(req.user.id) || level.status !== 'IN_PROGRESS') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Solo el creador puede enviar la verificación de un nivel en progreso' });
+    }
+    const accepted = await client.query("SELECT verifier_id FROM applications WHERE level_id = $1 AND status = 'ACCEPTED' FOR UPDATE", [req.params.id]);
+    const validationError = validateVerificationSubmission({
+      verifierId: req.body.verifier_id,
+      publicLevelId: String(req.body?.public_level_id ?? ''),
+      videoUrl: req.body?.video_url,
+      acceptedVerifiers: accepted.rows
+    });
+    if (validationError) { await client.query('ROLLBACK'); return res.status(400).json({ error: validationError }); }
+    const submission = await client.query(
+      `INSERT INTO verification_submissions (level_id, verifier_id, video_url, public_level_id, status)
+       VALUES ($1, $2, $3, $4, 'PENDING')
+       RETURNING id, level_id, verifier_id, public_level_id, status, submitted_at`,
+      [req.params.id, req.body.verifier_id, req.body.video_url.trim(), String(req.body.public_level_id)]
+    );
+    await client.query('COMMIT');
+    res.status(201).json({ submission: submission.rows[0] });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    if (error.code === '23505') return res.status(409).json({ error: 'Este nivel ya tiene una verificación pendiente de revisión' });
+    next(error);
+  } finally { client?.release(); }
+});
+
+/* Legacy immediate verification is intentionally disabled; submissions now require admin review.
 router.patch('/:id/verify', authenticateToken, async (req, res, next) => {
   let client;
   try {
@@ -400,8 +484,9 @@ router.patch('/:id/verify', authenticateToken, async (req, res, next) => {
     next(error);
   } finally { client?.release(); }
 });
+*/
 
-router.patch('/:id/close-applications', authenticateToken, async (req, res, next) => {
+router.patch('/:id/close-applications', authenticateToken, requireActiveUser, async (req, res, next) => {
   let client;
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
@@ -437,7 +522,7 @@ router.patch('/:id/close-applications', authenticateToken, async (req, res, next
   } finally { client?.release(); }
 });
 
-router.delete('/:id/verifiers/:applicationId', authenticateToken, async (req, res, next) => {
+router.delete('/:id/verifiers/:applicationId', authenticateToken, requireActiveUser, async (req, res, next) => {
   let client;
   try {
     if (!isLevelId(req.params.id) || !isLevelId(req.params.applicationId)) return res.status(404).json({ error: 'Verificador no encontrado' });
@@ -466,7 +551,7 @@ router.delete('/:id/verifiers/:applicationId', authenticateToken, async (req, re
   } finally { client?.release(); }
 });
 
-router.delete('/:id', authenticateToken, async (req, res, next) => {
+router.delete('/:id', authenticateToken, requireActiveUser, async (req, res, next) => {
   let client;
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
@@ -491,7 +576,7 @@ router.delete('/:id', authenticateToken, async (req, res, next) => {
   } finally { client?.release(); }
 });
 
-router.patch('/:id/withdraw', authenticateToken, async (req, res, next) => {
+router.patch('/:id/withdraw', authenticateToken, requireActiveUser, async (req, res, next) => {
   let client;
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
@@ -528,7 +613,7 @@ router.patch('/:id/withdraw', authenticateToken, async (req, res, next) => {
   } finally { client?.release(); }
 });
 
-router.patch('/:id/restore', authenticateToken, async (req, res, next) => {
+router.patch('/:id/restore', authenticateToken, requireActiveUser, async (req, res, next) => {
   let client;
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
@@ -565,11 +650,11 @@ router.patch('/:id/restore', authenticateToken, async (req, res, next) => {
   } finally { client?.release(); }
 });
 
-router.post('/:id/applications', authenticateToken, requireRole('USER'), async (req, res, next) => {
+router.post('/:id/applications', authenticateToken, requireRole('USER'), requireActiveUser, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     const result = await pool.query(
-      `SELECT l.id, l.creator_id, l.game_mode, l.status, l.applications_open,
+      `SELECT l.id, l.creator_id, l.game_mode, l.status, l.applications_open, l.open_verification,
               l.minimum_hardest_aredl_id,
               u.hardest_classic_aredl_id, u.hardest_platformer_aredl_id
        FROM levels l CROSS JOIN users u
@@ -578,7 +663,7 @@ router.post('/:id/applications', authenticateToken, requireRole('USER'), async (
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Nivel no encontrado' });
     const level = result.rows[0];
-    if (level.status !== 'AVAILABLE' || !level.applications_open) return res.status(409).json({ error: 'Este nivel no acepta postulaciones en este momento' });
+    if (!canReceiveApplication({ status: level.status, applicationsOpen: level.applications_open, openVerification: level.open_verification })) return res.status(409).json({ error: 'Este nivel no acepta postulaciones en este momento' });
     if (String(level.creator_id) === String(req.user.id)) return res.status(403).json({ error: 'No podés postularte para verificar tu propio nivel' });
 
     if (level.minimum_hardest_aredl_id) {
@@ -602,17 +687,26 @@ router.post('/:id/applications', authenticateToken, requireRole('USER'), async (
     let application;
     try {
       await client.query('BEGIN');
-      const locked = await client.query('SELECT status, applications_open FROM levels WHERE id = $1 FOR UPDATE', [level.id]);
-      if (!locked.rows[0] || locked.rows[0].status !== 'AVAILABLE' || !locked.rows[0].applications_open) {
+      const locked = await client.query('SELECT status, applications_open, open_verification FROM levels WHERE id = $1 FOR UPDATE', [level.id]);
+      if (!locked.rows[0] || !canReceiveApplication(locked.rows[0])) {
         await client.query('ROLLBACK');
         return res.status(409).json({ error: 'Este nivel no acepta postulaciones en este momento' });
       }
+      const applicationStatus = getApplicationStatusForLevel({ openVerification: locked.rows[0].open_verification });
       application = await client.query(
         `INSERT INTO applications (level_id, verifier_id, status)
-         VALUES ($1, $2, 'PENDING')
+         VALUES ($1, $2, $3)
          RETURNING id, level_id, verifier_id, status, created_at`,
-        [level.id, req.user.id]
+        [level.id, req.user.id, applicationStatus]
       );
+      if (applicationStatus === 'ACCEPTED') {
+        await client.query("UPDATE levels SET status = 'IN_PROGRESS', updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [level.id]);
+        await client.query(
+          `INSERT INTO notifications (user_id, title, message, type, related_level_id)
+           VALUES ($1, 'Postulación aceptada', $2, 'APPLICATION_ACCEPTED', $3)`,
+          [req.user.id, `Tu postulación para verificar "${level.name}" fue aceptada automáticamente.`, level.id]
+        );
+      }
       await client.query(
         `INSERT INTO notifications (user_id, title, message, type, related_level_id)
          SELECT creator_id, 'Nueva postulación', $1, 'APPLICATION_RECEIVED', $2
