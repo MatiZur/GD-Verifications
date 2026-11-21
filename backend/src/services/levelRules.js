@@ -57,6 +57,12 @@ export function canCreatorCloseApplications({ creatorId, userId, status, applica
     && Number(acceptedVerifierCount) === 0;
 }
 
+export function canCreatorRestoreLevel({ creatorId, userId, status, acceptedVerifierCount }) {
+  return String(creatorId) === String(userId)
+    && status === 'CANCELLED'
+    && Number(acceptedVerifierCount) === 0;
+}
+
 export function isLevelId(value) {
   if (typeof value !== 'string' || !/^[1-9]\d{0,18}$/.test(value)) return false;
   return BigInt(value) <= 9223372036854775807n;

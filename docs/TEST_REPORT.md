@@ -106,6 +106,19 @@ Comprobaciones de T-22:
 | Catálogo `/levels` en navegador | **PASS** | Se verificó espacio de 28 px entre las categorías anteriores y “Siendo verificados”. |
 | `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
 
+Comprobaciones de T-23:
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| `cd backend && npm test` | **PASS** — 21 tests, 0 fallos | Incluye autorización para restaurar niveles cancelados. |
+| `cd frontend && npm run build` | **PASS** | Compilación de producción para la página Acerca de, campana, tarjetas compactas y avisos temporales. |
+| `node --check` en rutas/middleware backend | **PASS** | Sin errores de sintaxis en API, autenticación opcional y notificaciones. |
+| Health check local | **PASS** — PostgreSQL conectado | API reiniciada con las rutas actualizadas y la base local responde. |
+| `GET /api/v1/notifications` sin token | **PASS** — HTTP 401 | El feed de notificaciones requiere autenticación. |
+| Página `/about` en navegador | **PASS** | Se verificaron contenido en español e inglés y enlace de navegación a la página dedicada. |
+| Modal de nivel | **PASS** | El contenido desplazable deja 28 px entre el botón de postulación y el final del modal. |
+| `git diff --check` | **PASS** | Sin errores de whitespace en los cambios. |
+
 Comprobaciones de T-17:
 
 | Comprobación | Resultado | Alcance |

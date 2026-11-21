@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canCreatorCloseApplications, canCreatorMarkLevelVerified, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
+import { canCreatorCloseApplications, canCreatorMarkLevelVerified, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../src/services/levelRules.js';
 
 const body = {
   name: 'Example Demon',
@@ -63,6 +63,14 @@ test('only the creator can close open applications on an available level without
   assert.equal(canCreatorCloseApplications({ ...valid, applicationsOpen: false }), false);
   assert.equal(canCreatorCloseApplications({ ...valid, status: 'IN_PROGRESS' }), false);
   assert.equal(canCreatorCloseApplications({ ...valid, acceptedVerifierCount: 1 }), false);
+});
+
+test('only the creator can restore a cancelled level without accepted verifiers', () => {
+  const valid = { creatorId: '10', userId: 10, status: 'CANCELLED', acceptedVerifierCount: 0 };
+  assert.equal(canCreatorRestoreLevel(valid), true);
+  assert.equal(canCreatorRestoreLevel({ ...valid, userId: 11 }), false);
+  assert.equal(canCreatorRestoreLevel({ ...valid, status: 'AVAILABLE' }), false);
+  assert.equal(canCreatorRestoreLevel({ ...valid, acceptedVerifierCount: 1 }), false);
 });
 
 test('level IDs must be valid positive PostgreSQL BIGINT values', () => {

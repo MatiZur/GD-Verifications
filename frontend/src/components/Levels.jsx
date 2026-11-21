@@ -484,7 +484,24 @@ function LevelDetailsModal({ levelId, language, user, onRequireLogin, onClose })
   </div>;
 }
 
-function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying, verificationError, onCloseApplications, onWithdraw, actionBusy, actionError }) {
+function ActivityLevelImage({ item, image }) {
+  const [privateImage, setPrivateImage] = useState('');
+  useEffect(() => {
+    if (item.status !== 'CANCELLED' || !item.has_image) { setPrivateImage(''); return undefined; }
+    let active = true;
+    let objectUrl = '';
+    apiBlob(`/levels/${encodeURIComponent(item.id)}/image`).then((blob) => {
+      objectUrl = URL.createObjectURL(blob);
+      if (active) setPrivateImage(objectUrl);
+      else URL.revokeObjectURL(objectUrl);
+    }).catch(() => {});
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [item.id, item.status, item.has_image]);
+  const src = item.status === 'CANCELLED' && item.has_image ? privateImage : image;
+  return src ? <img className="created-level-image" src={src} alt={item.name} loading="lazy"/> : <span className="created-level-image-placeholder" aria-hidden="true"/>;
+}
+
+function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying, verificationError, onCloseApplications, onWithdraw, onRestore, actionBusy, actionError }) {
   const t = copy[language];
   const verifiedStatus = kind === 'levels' ? item.status : item.level_status;
   const verifiedBy = verifiedStatus === 'VERIFIED' && Array.isArray(item.verified_by)
@@ -496,7 +513,7 @@ function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying,
     : ({ PENDING: t.activityPending, ACCEPTED: t.activityAccepted, REJECTED: t.activityRejected, WITHDRAWN: t.activityWithdrawn, VERIFIED: t.statusVerified }[status] || status);
   const image = item.has_image ? apiUrl(`/levels/${item.id}/image`) : youtubeThumbnail(item.showcase_url);
   if (kind === 'levels') return <article className="created-level-card">
-    <a className="created-level-image-link" href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><img className="created-level-image" src={image} alt={item.name} loading="lazy"/></a>
+    <a className="created-level-image-link" href={item.showcase_url} aria-label={`${t.openVideo}: ${item.name}`}><ActivityLevelImage item={item} image={image}/></a>
     <div className="created-level-content"><div className="level-card-top"><span className="level-mode">{item.game_mode === 'PLATFORMER' ? t.platformerMode : t.classicMode}</span><span className="level-status">{statusText}</span></div>
       <button className="level-card-title level-card-open-title" type="button" onClick={onOpen}>{item.name}</button>
       <p className="level-card-difficulty">{t.difficultyTop}{item.difficulty_estimate}</p>
@@ -506,6 +523,7 @@ function ActivityCard({ item, kind, language, onOpen, onMarkVerified, verifying,
         {item.status === 'IN_PROGRESS' && Number(item.accepted_verifier_count) > 0 && <button className="button button-outline" type="button" onClick={() => onMarkVerified(item.id)} disabled={verifying}>{verifying ? t.markingVerified : t.markVerified}</button>}
         {item.status === 'AVAILABLE' && item.applications_open !== false && <button className="button button-outline" type="button" onClick={() => onCloseApplications(item.id)} disabled={actionBusy}>{actionBusy ? t.savingLevelAction : t.closeApplications}</button>}
         {item.status === 'AVAILABLE' && Number(item.accepted_verifier_count) === 0 && <button className="button button-outline level-withdraw-button" type="button" onClick={() => onWithdraw(item.id)} disabled={actionBusy}>{actionBusy ? t.savingLevelAction : t.withdrawLevel}</button>}
+        {item.status === 'CANCELLED' && <button className="button button-primary" type="button" onClick={() => onRestore(item.id)} disabled={actionBusy}>{actionBusy ? t.restoringLevel : t.restoreLevel}</button>}
       </div>
       {verificationError && <p className="level-error" role="alert">{verificationError}</p>}
       {actionError && <p className="level-error" role="alert">{actionError}</p>}
@@ -570,6 +588,14 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
     } catch (actionError) { setActivityActionError(translateError(actionError.message, language)); setActivityActionErrorId(String(levelId)); }
     finally { setActivityActionId(null); }
   }
+  async function restoreLevel(levelId) {
+    setActivityActionId(String(levelId)); setActivityActionError(''); setActivityActionErrorId(null);
+    try {
+      await apiRequest(`/levels/${encodeURIComponent(levelId)}/restore`, { method: 'PATCH' });
+      setItems((current) => current.map((item) => String(item.id) === String(levelId) ? { ...item, status: 'AVAILABLE', applications_open: true } : item));
+    } catch (actionError) { setActivityActionError(translateError(actionError.message, language)); setActivityActionErrorId(String(levelId)); }
+    finally { setActivityActionId(null); }
+  }
   const title = kind === 'levels' ? t.createdLevels : t.accountVerifications;
   return <main className="levels-page"><div className="levels-content">
     <header className="levels-heading"><p className="profile-eyebrow">GD VERIFICATIONS</p><h1>{title}</h1><p>{kind === 'levels' ? t.myLevelsIntro : t.myVerificationsIntro}</p></header>
@@ -577,7 +603,7 @@ export function MyActivityPage({ kind, language, user, onRequireLogin }) {
       : loading ? <p className="levels-message">{t.loadingLevels}</p>
         : error ? <p className="levels-message level-error">{error}</p>
           : items.length === 0 ? <p className="levels-message">{kind === 'levels' ? t.emptyMyLevels : t.emptyMyVerifications}</p>
-            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(item.id)} onMarkVerified={markLevelVerified} verifying={verifyingId === String(item.id)} verificationError={verificationErrorId === String(item.id) ? verificationError : ''} onCloseApplications={closeApplications} onWithdraw={withdrawLevel} actionBusy={activityActionId === String(item.id)} actionError={activityActionErrorId === String(item.id) ? activityActionError : ''}/>)}</section>}
+            : <section className={kind === 'levels' ? 'created-levels-list' : 'verification-entries'}>{items.map((item) => <ActivityCard key={kind === 'levels' ? item.id : item.application_id} item={item} kind={kind} language={language} onOpen={() => setOpenLevelId(item.id)} onMarkVerified={markLevelVerified} verifying={verifyingId === String(item.id)} verificationError={verificationErrorId === String(item.id) ? verificationError : ''} onCloseApplications={closeApplications} onWithdraw={withdrawLevel} onRestore={restoreLevel} actionBusy={activityActionId === String(item.id)} actionError={activityActionErrorId === String(item.id) ? activityActionError : ''}/>)}</section>}
     {openLevelId && <LevelDetailsModal levelId={openLevelId} language={language} user={user} onRequireLogin={onRequireLogin} onClose={() => setOpenLevelId(null)}/>}
   </div></main>;
 }

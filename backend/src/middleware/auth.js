@@ -30,3 +30,16 @@ export function authenticateToken(req, res, next) {
     });
   }
 }
+
+export function optionalToken(req, _res, next) {
+  try {
+    const authorization = req.headers.authorization;
+    if (authorization?.startsWith('Bearer ')) {
+      const decoded = jwt.verify(authorization.slice(7), process.env.JWT_SECRET);
+      req.user = { id: decoded.id, username: decoded.username, role: decoded.role };
+    }
+  } catch {
+    req.user = null;
+  }
+  next();
+}

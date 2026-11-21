@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { pool } from '../config/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, optionalToken } from '../middleware/auth.js';
 import { getAredlLevels } from '../services/aredl.js';
-import { canCreatorCloseApplications, canCreatorMarkLevelVerified, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
+import { canCreatorCloseApplications, canCreatorMarkLevelVerified, canCreatorRestoreLevel, canCreatorWithdrawLevel, isLevelId, meetsHardestRequirement, validateLevelInput } from '../services/levelRules.js';
 import { validateApplicationSelection } from '../services/applicationRules.js';
 import { canAccessLevelChat, validateChatAttachment, validateChatMessage } from '../services/chatRules.js';
 
@@ -28,7 +28,7 @@ router.get('/', async (_req, res, next) => {
     const result = await pool.query(
       `SELECT ${levelFields}
        FROM levels l JOIN users u ON u.id = l.creator_id
-       WHERE l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')
+       WHERE l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED')
        ORDER BY l.created_at DESC`
     );
     res.json({ levels: result.rows });
@@ -113,36 +113,39 @@ router.get('/applications/mine', authenticateToken, async (req, res, next) => {
               owner.username AS creator_username, owner.display_name AS creator_display_name
        FROM applications a JOIN levels l ON l.id = a.level_id
        JOIN users owner ON owner.id = l.creator_id
-       WHERE a.verifier_id = $1 ORDER BY a.created_at DESC`,
+       WHERE a.verifier_id = $1 AND l.status <> 'CANCELLED' ORDER BY a.created_at DESC`,
       [req.user.id]
     );
     res.json({ applications: result.rows });
   } catch (error) { next(error); }
 });
 
-router.get('/:id/image', async (req, res, next) => {
+router.get('/:id/image', optionalToken, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).end();
     const result = await pool.query(
-      "SELECT image_data, image_mime_type FROM levels WHERE id = $1 AND status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')",
-      [req.params.id]
+      `SELECT image_data, image_mime_type, status FROM levels
+       WHERE id = $1 AND status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')
+         AND (status <> 'CANCELLED' OR creator_id = $2)`,
+      [req.params.id, req.user?.id ?? null]
     );
     if (!result.rows[0]?.image_data) return res.status(404).end();
     res.type(result.rows[0].image_mime_type)
       .set('Cross-Origin-Resource-Policy', 'cross-origin')
-      .set('Cache-Control', 'public, max-age=86400')
+      .set('Cache-Control', result.rows[0].status === 'CANCELLED' ? 'private, no-store' : 'public, max-age=86400')
       .send(result.rows[0].image_data);
   } catch (error) { next(error); }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', optionalToken, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     const result = await pool.query(
       `SELECT ${levelFields}
        FROM levels l JOIN users u ON u.id = l.creator_id
-       WHERE l.id = $1 AND l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')`,
-      [req.params.id]
+       WHERE l.id = $1 AND l.status IN ('PENDING_REVIEW', 'AVAILABLE', 'IN_PROGRESS', 'VERIFIED', 'REJECTED', 'CANCELLED')
+         AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
+      [req.params.id, req.user?.id ?? null]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Nivel no encontrado' });
     res.json({ level: result.rows[0] });
@@ -181,7 +184,7 @@ router.get('/:id/chat', authenticateToken, async (req, res, next) => {
       `SELECT l.creator_id,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
-       FROM levels l WHERE l.id = $1`,
+       FROM levels l WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     if (!permission.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
@@ -227,7 +230,7 @@ router.post('/:id/messages', authenticateToken, (req, res, next) => {
       `SELECT l.creator_id,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
-       FROM levels l WHERE l.id = $1`,
+       FROM levels l WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     if (!permission.rows[0]) return res.status(404).json({ error: 'Nivel no encontrado' });
@@ -241,6 +244,17 @@ router.post('/:id/messages', authenticateToken, (req, res, next) => {
       [req.params.id, req.user.id, req.body?.message?.trim() || '', req.file?.buffer ?? null, req.file?.mimetype ?? null, req.file?.originalname.slice(0, 255) ?? null]
     );
     const message = result.rows[0];
+    await pool.query(
+      `INSERT INTO notifications (user_id, title, message, type, related_level_id)
+       SELECT participant_id, 'Nuevo mensaje', 'Hay nuevos mensajes en el chat.', 'CHAT_MESSAGE', $1
+       FROM (
+         SELECT l.creator_id AS participant_id FROM levels l WHERE l.id = $1 AND l.creator_id <> $2
+         UNION
+         SELECT a.verifier_id AS participant_id FROM applications a
+         WHERE a.level_id = $1 AND a.status = 'ACCEPTED' AND a.verifier_id <> $2
+       ) participants`,
+      [req.params.id, req.user.id]
+    );
     const sender = await pool.query(
       `SELECT id AS sender_id, username AS sender_username,
               display_name AS sender_display_name, avatar_url AS sender_avatar_url
@@ -258,7 +272,7 @@ router.get('/:id/messages/:messageId/attachment', authenticateToken, async (req,
       `SELECT l.creator_id,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS has_verifiers,
               EXISTS (SELECT 1 FROM applications a WHERE a.level_id = l.id AND a.verifier_id = $2 AND a.status = 'ACCEPTED') AS is_verifier
-       FROM levels l WHERE l.id = $1`,
+       FROM levels l WHERE l.id = $1 AND (l.status <> 'CANCELLED' OR l.creator_id = $2)`,
       [req.params.id, req.user.id]
     );
     const p = permission.rows[0];
@@ -283,7 +297,7 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
     client = await pool.connect();
     await client.query('BEGIN');
-    const levelResult = await client.query('SELECT creator_id, status FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const levelResult = await client.query('SELECT creator_id, name, status FROM levels WHERE id = $1 FOR UPDATE', [req.params.id]);
     const level = levelResult.rows[0];
     if (!level) {
       await client.query('ROLLBACK');
@@ -313,6 +327,12 @@ router.patch('/:id/applications', authenticateToken, async (req, res, next) => {
       [req.params.id, applicationIds]
     );
     await client.query("UPDATE levels SET status = 'IN_PROGRESS', applications_open = FALSE, updated_at = NOW() WHERE id = $1 AND status = 'AVAILABLE'", [req.params.id]);
+    await client.query(
+      `INSERT INTO notifications (user_id, title, message, type, related_level_id)
+       SELECT verifier_id, 'Postulación aceptada', $1, 'APPLICATION_ACCEPTED', $2
+       FROM applications WHERE id = ANY($3::bigint[]) AND status = 'ACCEPTED'`,
+      [`Tu postulación para verificar "${level.name}" fue aceptada.`, req.params.id, applicationIds]
+    );
     await client.query('COMMIT');
     res.json({ accepted: accepted.rows });
   } catch (error) {
@@ -328,7 +348,7 @@ router.patch('/:id/verify', authenticateToken, async (req, res, next) => {
     client = await pool.connect();
     await client.query('BEGIN');
     const result = await client.query(
-      `SELECT l.id, l.creator_id, l.status,
+      `SELECT l.id, l.creator_id, l.name, l.status,
               (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count
        FROM levels l WHERE l.id = $1 FOR UPDATE`,
       [req.params.id]
@@ -349,6 +369,12 @@ router.patch('/:id/verify', authenticateToken, async (req, res, next) => {
     const updated = await client.query(
       "UPDATE levels SET status = 'VERIFIED', updated_at = NOW() WHERE id = $1 RETURNING id, status, updated_at",
       [req.params.id]
+    );
+    await client.query(
+      `INSERT INTO notifications (user_id, title, message, type, related_level_id)
+       SELECT a.verifier_id, 'Verificación aceptada', $1, 'VERIFICATION_ACCEPTED', $2
+       FROM applications a WHERE a.level_id = $2 AND a.status = 'ACCEPTED'`,
+      [`La verificación de "${level.name}" fue aceptada.`, req.params.id]
     );
     await client.query('COMMIT');
     res.json({ level: updated.rows[0] });
@@ -432,6 +458,43 @@ router.patch('/:id/withdraw', authenticateToken, async (req, res, next) => {
   } finally { client?.release(); }
 });
 
+router.patch('/:id/restore', authenticateToken, async (req, res, next) => {
+  let client;
+  try {
+    if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const result = await client.query(
+      `SELECT l.id, l.creator_id, l.status,
+              (SELECT COUNT(*)::int FROM applications a WHERE a.level_id = l.id AND a.status = 'ACCEPTED') AS accepted_verifier_count
+       FROM levels l WHERE l.id = $1 FOR UPDATE`,
+      [req.params.id]
+    );
+    const level = result.rows[0];
+    if (!level) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Nivel no encontrado' });
+    }
+    if (String(level.creator_id) !== String(req.user.id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Solo el creador puede restaurar este nivel' });
+    }
+    if (!canCreatorRestoreLevel({ creatorId: level.creator_id, userId: req.user.id, status: level.status, acceptedVerifierCount: level.accepted_verifier_count })) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Solo se puede restaurar un nivel cancelado sin verificadores aceptados' });
+    }
+    const updated = await client.query(
+      "UPDATE levels SET status = 'AVAILABLE', applications_open = TRUE, updated_at = NOW() WHERE id = $1 RETURNING id, status, applications_open, updated_at",
+      [req.params.id]
+    );
+    await client.query('COMMIT');
+    res.json({ level: updated.rows[0] });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally { client?.release(); }
+});
+
 router.post('/:id/applications', authenticateToken, async (req, res, next) => {
   try {
     if (!isLevelId(req.params.id)) return res.status(404).json({ error: 'Nivel no encontrado' });
@@ -479,6 +542,12 @@ router.post('/:id/applications', authenticateToken, async (req, res, next) => {
          VALUES ($1, $2, 'PENDING')
          RETURNING id, level_id, verifier_id, status, created_at`,
         [level.id, req.user.id]
+      );
+      await client.query(
+        `INSERT INTO notifications (user_id, title, message, type, related_level_id)
+         SELECT creator_id, 'Nueva postulación', $1, 'APPLICATION_RECEIVED', $2
+         FROM levels WHERE id = $2`,
+        [`Tu nivel recibió una postulación: "${level.name}".`, level.id]
       );
       await client.query('COMMIT');
     } catch (error) {
