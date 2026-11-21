@@ -74,7 +74,7 @@ Object.assign(copy.es, {
   adminBanUser: 'Suspender usuario', adminBanDays: 'Días de suspensión', adminPermanentBan: 'Permanente',
   adminOpenReportChat: 'Revisar chat', adminVerificationFor: 'Verificación de', adminPublicLevelId: 'ID pública',
   adminVerificationVideo: 'Video enviado', adminVerificationReviewed: 'Entrega de verificación revisada.', adminReportResolved: 'Caso resuelto.', adminBannedUser: 'Suspendido', adminBanExpires: 'hasta',
-  openVerificationStatus: 'Verificación abierta', gdLevelId: 'ID pública de GD'
+  openVerificationStatus: 'Verificación abierta', gdLevelId: 'ID'
 });
 Object.assign(copy.en, {
   openVerification: 'Open verification', openVerificationHelp: 'Applications are accepted automatically when submitted.', openApplicationAccepted: 'You were accepted automatically as a verifier; you can coordinate in the chat now.', adminReviewChatReadOnly: 'Admins can read this chat while the case is under review.',
@@ -88,7 +88,7 @@ Object.assign(copy.en, {
   adminBanUser: 'Ban user', adminBanDays: 'Ban duration (days)', adminPermanentBan: 'Permanent',
   adminOpenReportChat: 'Review chat', adminVerificationFor: 'Verification for', adminPublicLevelId: 'Public ID',
   adminVerificationVideo: 'Submitted video', adminVerificationReviewed: 'Verification submission reviewed.', adminReportResolved: 'Case resolved.', adminBannedUser: 'Banned', adminBanExpires: 'until',
-  openVerificationStatus: 'Open verification', gdLevelId: 'Public GD level ID'
+  openVerificationStatus: 'Open verification', gdLevelId: 'ID'
 });
 
 const errors = {

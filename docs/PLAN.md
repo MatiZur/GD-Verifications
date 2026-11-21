@@ -29,6 +29,7 @@ Una tarea terminada tiene un commit propio. El estado describe este repositorio 
 - [x] **T-23 — Restauración, página informativa y avisos.** Restaurar niveles cancelados solo para su creador, restringir su visibilidad, compactar Niveles creados, agregar Acerca de y redirección de logout, y conectar notificaciones persistentes y avisos temporales. Confirmación: `Feat: Restauración y notificaciones de niveles`.
 - [x] **T-24 — Gestión de verificadores, acceso y sesión.** Restringir el botón de chat a participantes, conservar abiertas las postulaciones al aceptar verificadores hasta que el creador las cierre, permitir remover verificadores y borrar niveles cancelados, e iniciar sesión con username. Confirmación: `Feat: Gestión de verificadores y acceso por usuario`.
 - [x] **T-25 — Open verification, revisión de entregas y reportes de chat.** Aceptar sin cerrar postulaciones, aceptación automática configurable, entrega de ID pública/video atribuida a un verificador y moderación administrativa; reportes con lectura temporal del chat y suspensiones temporales/permanentes. Confirmación: `Feat: Flujo de verificación, reportes y sanciones`.
+- [x] **T-26 — Presentación de niveles verificados.** Mostrar el ID público como texto, dejar el enlace a GDBrowser únicamente en el nombre y ocultar hardest mínimo y estado de postulaciones cerradas en detalles verificados.
 
 ## Criterio para marcar una tarea como hecha
 

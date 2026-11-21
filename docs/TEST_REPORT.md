@@ -1,6 +1,6 @@
 # Informe de pruebas
 
-Última actualización: **2026-11-21**. Última ejecución local: suite backend y build frontend después de añadir el rechazo individual de postulaciones. Este informe separa las pruebas locales repetibles de las comprobaciones de disponibilidad pública; un smoke test no demuestra que todos los flujos estén correctos.
+Última actualización: **2026-11-21**. Última ejecución local: suite backend y build frontend después de los cambios de presentación de niveles verificados. Este informe separa las pruebas locales repetibles de las comprobaciones de disponibilidad pública; un smoke test no demuestra que todos los flujos estén correctos.
 
 ## Comprobaciones locales
 
